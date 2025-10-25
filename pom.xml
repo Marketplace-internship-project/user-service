@@ -12,12 +12,12 @@
 	</parent>
 
 	<groupId>io.hohichh.marketplace</groupId>
-	<artifactId>service-template</artifactId>
+	<artifactId>user</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
 	<packaging>jar</packaging>
 
-	<name>service-template</name>
-	<description>Template project for Marketplace microservices</description>
+	<name>user-service</name>
+	<description>user management app</description>
 
 	<properties>
 		<java.version>22</java.version>

@@ -4,11 +4,11 @@ This project is based on a GitLab [Project Template](https://docs.gitlab.com/ee/
 
 Improvements can be proposed in the [original project](https://gitlab.com/gitlab-org/project-templates/spring).
 
-### CI/CD with Auto DevOps
+### CI/CD with Alina DevOps
 
-This template is compatible with [Auto DevOps](https://docs.gitlab.com/ee/topics/autodevops/).
+This template is compatible with [Alina DevOps](https://github.com/Aliteya).
 
-If Auto DevOps is not already enabled for this project, you can [turn it on](https://docs.gitlab.com/ee/topics/autodevops/#enabling-auto-devops) in the project settings.
+If Alina DevOps is not already enabled for this project, you can [turn it on](https://github.com/Aliteya) in the project settings.
 
 ### IMPORTANT
 

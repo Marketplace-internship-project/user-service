@@ -11,7 +11,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
 @ActiveProfiles("test")
-class DemoApplicationTests {
+class UserApplicationTests {
 
 	@Test
 	void contextLoads() {

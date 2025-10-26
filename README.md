@@ -1,23 +1,12 @@
-### Java Spring template project
+# User Service
 
-This project is based on a GitLab [Project Template](https://docs.gitlab.com/ee/gitlab-basics/create-project.html).
+![Java](https://img.shields.io/badge/Java-17%2B-orange)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.x-brightgreen)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-blue)
+![Docker](https://img.shields.io/badge/Docker-Enabled-2496ED)
 
-Improvements can be proposed in the [original project](https://gitlab.com/gitlab-org/project-templates/spring).
+## Overview
 
-### CI/CD with Alina DevOps
+User Service is a robust RESTful microservice designed to manage user identities and their associated bank card information.
 
-This template is compatible with [Alina DevOps](https://github.com/Aliteya).
-
-If Alina DevOps is not already enabled for this project, you can [turn it on](https://github.com/Aliteya) in the project settings.
-
-### IMPORTANT
-
-In [pom.xml](pom.xml) file change repository name:
-
-```xml
-    <properties>
-		<java.version>22</java.version>
-		<sonar.projectKey>Marketplace-internship-project_YOUR-REPOSITORY-NAME</sonar.projectKey>
-	</properties>
-```
-to correct one
+Developed as part of an internship program, this project demonstrates modern backend development practices using the Spring ecosystem, focusing on clean architecture, efficient data access patterns, and containerization.

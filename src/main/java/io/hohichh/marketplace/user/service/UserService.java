@@ -1,9 +1,6 @@
 package io.hohichh.marketplace.user.service;
 
-import io.hohichh.marketplace.user.dto.CardInfoDto;
-import io.hohichh.marketplace.user.dto.NewUserDto;
-import io.hohichh.marketplace.user.dto.UserDto;
-import io.hohichh.marketplace.user.dto.UserWithCardsDto;
+import io.hohichh.marketplace.user.dto.*;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -24,7 +21,7 @@ public interface UserService {
     List<UserDto> getUsersWithBirthdayToday();
     Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable);
 
-    CardInfoDto createCardForUser(CardInfoDto cardInfo) throws NotFoundException;
+    CardInfoDto createCardForUser(UUID userId, NewCardInfoDto cardInfo) throws NotFoundException;
     void deleteCard(UUID cardId) throws NotFoundException;
     CardInfoDto getCardById(UUID cardId) throws NotFoundException;
 

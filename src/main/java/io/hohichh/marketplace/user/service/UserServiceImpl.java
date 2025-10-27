@@ -1,9 +1,10 @@
 package io.hohichh.marketplace.user.service;
 
-import io.hohichh.marketplace.user.dto.CardInfoDto;
-import io.hohichh.marketplace.user.dto.NewUserDto;
-import io.hohichh.marketplace.user.dto.UserDto;
-import io.hohichh.marketplace.user.dto.UserWithCardsDto;
+import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.mapper.CardInfoMapper;
+import io.hohichh.marketplace.user.mapper.UserMapper;
+import io.hohichh.marketplace.user.model.CardInfo;
+import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
@@ -21,79 +23,156 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final CardRepository cardRepository;
 
+    private final UserMapper userMapper;
+    private final CardInfoMapper cardInfoMapper;
+
     @Autowired
-    public UserServiceImpl(UserRepository userRepository, CardRepository cardRepository) {
+    public UserServiceImpl(UserRepository userRepository,
+                           CardRepository cardRepository,
+                           UserMapper userMapper,
+                           CardInfoMapper cardInfoMapper) {
         this.userRepository = userRepository;
         this.cardRepository = cardRepository;
+        this.userMapper = userMapper;
+        this.cardInfoMapper = cardInfoMapper;
     }
 
     @Override
+    @Transactional
     public UserDto createUser(NewUserDto user) {
-        return null;
+        User savedUser = userRepository.save(
+                userMapper.toUser(user));
+
+        return userMapper.toUserDto(savedUser);
     }
 
     @Override
+    @Transactional
     public void deleteUser(UUID id) throws NotFoundException {
-
+        if (!userRepository.existsById(id)) {
+            throw new NotFoundException();
+        }
+        userRepository.deleteById(id);
     }
 
     @Override
-    public UserDto updateUser(UUID id, NewUserDto user) throws NotFoundException {
-        return null;
+    @Transactional
+    public UserDto updateUser(UUID id, NewUserDto userToUpd) throws NotFoundException {
+        User existingUser = userRepository.findById(id)
+                .orElseThrow(NotFoundException::new);
+
+        userMapper.updateUserFromDto(userToUpd, existingUser);
+
+        User updatedUser = userRepository.save(existingUser);
+
+        return userMapper.toUserDto(updatedUser);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserWithCardsDto getUserById(UUID id) throws NotFoundException {
-        return null;
+        User user = userRepository.findById(id)
+                .orElseThrow(NotFoundException::new);
+
+        List<CardInfo> cards = cardRepository.findByUserId(id);
+
+        return userMapper.toUserWithCardsDto(user, cards);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<UserWithCardsDto> getUserByEmail(String email) {
-        return Optional.empty();
+        User user = userRepository.findByEmail(email)
+                .orElse(null);
+        if (user == null) {
+            return Optional.empty();
+        }
+        List<CardInfo> cards = cardRepository.findByUserId(user.getId());
+
+        return Optional.of(
+                userMapper.toUserWithCardsDto(user, cards));
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
-        return null;
+        Page<User> userPage = userRepository.findAll(pageable);
+
+        return userPage.map(userMapper::toUserDto);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserDto> getUsersWithBirthdayToday() {
-        return List.of();
+        List<User> users = userRepository.findUsersWithBirthDayToday();
+
+        return users.stream().map(userMapper::toUserDto).toList();
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable) {
-        return null;
+        Page<User> userPage = userRepository.findBySearchTerm(searchTerm, pageable);
+
+        return userPage.map(userMapper::toUserDto);
     }
 
     @Override
-    public CardInfoDto createCardForUser(CardInfoDto cardInfo) throws NotFoundException {
-        return null;
+    @Transactional
+    public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) throws NotFoundException {
+        User user = userRepository.findById(userId)
+                .orElseThrow(NotFoundException::new);
+
+        CardInfo cardInfoEntity = cardInfoMapper.toCardInfo(newCard);
+        cardInfoEntity.setUser(user);
+
+        CardInfo savedCard = cardRepository.save(cardInfoEntity);
+
+        return cardInfoMapper.toCardInfoDto(savedCard);
     }
 
     @Override
+    @Transactional
     public void deleteCard(UUID cardId) throws NotFoundException {
-
+        if (!cardRepository.existsById(cardId)) {
+            throw new NotFoundException();
+        }
+        cardRepository.deleteById(cardId);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public CardInfoDto getCardById(UUID cardId) throws NotFoundException {
-        return null;
+        CardInfo cardInfo = cardRepository.findById(cardId)
+                .orElseThrow(NotFoundException::new);
+
+        return cardInfoMapper.toCardInfoDto(cardInfo);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public Optional<CardInfoDto> getCardByNumber(String cardNumber) {
-        return Optional.empty();
+        Optional<CardInfo> cardInfoOpt = cardRepository.findByNumber(cardNumber);
+        if (cardInfoOpt.isEmpty()) {
+            return Optional.empty();
+        }
+
+        CardInfoDto cardInfoDto = cardInfoMapper.toCardInfoDto(cardInfoOpt.get());
+        return Optional.of(cardInfoDto);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CardInfoDto> getCardsByUserId(UUID userId) {
-        return List.of();
+        List<CardInfo> cards = cardRepository.findByUserId(userId);
+        return cardInfoMapper.toCardInfoDtoList(cards);
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<CardInfoDto> getExpiredCards() {
-        return List.of();
+        List<CardInfo> expiredCards = cardRepository.findExpiredCardsNative();
+
+        return cardInfoMapper.toCardInfoDtoList(expiredCards);
     }
 }

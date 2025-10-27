@@ -108,7 +108,8 @@
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>3.5.0</version>
 				<configuration>
-					<argLine>--add-opens java.base/java.lang=ALL-UNNAMED</argLine>
+					<!--suppress UnresolvedMavenProperty -->
+					<argLine>${argLine} --add-opens java.base/java.lang=ALL-UNNAMED</argLine>
 				</configuration>
 			</plugin>
 
@@ -174,7 +175,8 @@
 			<plugin>
 				<groupId>org.jacoco</groupId>
 				<artifactId>jacoco-maven-plugin</artifactId>
-				<version>0.8.8</version> <executions>
+				<version>0.8.12</version>
+				<executions>
 				<execution>
 					<id>prepare-agent</id>
 					<goals>

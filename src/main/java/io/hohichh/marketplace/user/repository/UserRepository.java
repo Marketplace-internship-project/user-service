@@ -57,5 +57,6 @@ public interface UserRepository extends JpaRepository<User, UUID> {
             "WHERE EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM CURRENT_DATE) " +
             "AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM CURRENT_DATE)",
             nativeQuery = true)
-    List<User> findUsersWithBirthDayTodayNative();
+    List<User> findUsersWithBirthDayToday();
 }
+

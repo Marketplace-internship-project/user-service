@@ -1,6 +1,8 @@
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.exception.ResourceCreationConflictException;
+import io.hohichh.marketplace.user.exception.ResourceNotFoundException;
 import io.hohichh.marketplace.user.mapper.CardInfoMapper;
 import io.hohichh.marketplace.user.mapper.UserMapper;
 import io.hohichh.marketplace.user.model.CardInfo;
@@ -8,7 +10,6 @@ import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -40,6 +41,10 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public UserDto createUser(NewUserDto user) {
+        String email = user.email();
+        if(userRepository.findByEmail(email).isPresent()){
+            throw new ResourceCreationConflictException("User with email " + email + " already exists.");
+        }
         User savedUser = userRepository.save(
                 userMapper.toUser(user));
 
@@ -48,18 +53,24 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteUser(UUID id) throws NotFoundException {
+    public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
-            throw new NotFoundException();
+            throw new ResourceNotFoundException("User with id " + id + " not found.");
         }
         userRepository.deleteById(id);
     }
 
     @Override
     @Transactional
-    public UserDto updateUser(UUID id, NewUserDto userToUpd) throws NotFoundException {
+    public UserDto updateUser(UUID id, NewUserDto userToUpd) {
         User existingUser = userRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
+
+        String newEmail = userToUpd.email();
+        Optional<User> userWithSameEmail = userRepository.findByEmail(newEmail);
+        if (userWithSameEmail.isPresent() && !userWithSameEmail.get().getId().equals(id)) {
+            throw new ResourceCreationConflictException("Email " + newEmail + " is already in use by another user.");
+        }
 
         userMapper.updateUserFromDto(userToUpd, existingUser);
 
@@ -70,9 +81,9 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(readOnly = true)
-    public UserWithCardsDto getUserById(UUID id) throws NotFoundException {
+    public UserWithCardsDto getUserById(UUID id) {
         User user = userRepository.findById(id)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
 
         List<CardInfo> cards = cardRepository.findByUserId(id);
 
@@ -119,9 +130,15 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) throws NotFoundException {
+    public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard)  {
         User user = userRepository.findById(userId)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found."));
+
+        String number = newCard.cardNumber();
+        Optional<CardInfo> existingCard = cardRepository.findByNumber(number);
+        if (existingCard.isPresent() && !existingCard.get().getUser().getId().equals(userId)) {
+            throw new ResourceCreationConflictException("Card with number " + number + " already exists.");
+        }
 
         CardInfo cardInfoEntity = cardInfoMapper.toCardInfo(newCard);
         cardInfoEntity.setUser(user);
@@ -133,18 +150,18 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional
-    public void deleteCard(UUID cardId) throws NotFoundException {
+    public void deleteCard(UUID cardId) {
         if (!cardRepository.existsById(cardId)) {
-            throw new NotFoundException();
+            throw new ResourceNotFoundException("Card with id " + cardId + " not found.");
         }
         cardRepository.deleteById(cardId);
     }
 
     @Override
     @Transactional(readOnly = true)
-    public CardInfoDto getCardById(UUID cardId) throws NotFoundException {
+    public CardInfoDto getCardById(UUID cardId)  {
         CardInfo cardInfo = cardRepository.findById(cardId)
-                .orElseThrow(NotFoundException::new);
+                .orElseThrow(() -> new ResourceNotFoundException("Card with id " + cardId + " not found."));
 
         return cardInfoMapper.toCardInfoDto(cardInfo);
     }

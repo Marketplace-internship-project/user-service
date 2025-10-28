@@ -11,9 +11,9 @@ import java.util.UUID;
 
 public interface UserService {
     UserDto createUser(NewUserDto user);
-    void deleteUser(UUID id) throws NotFoundException;
-    UserDto updateUser(UUID id, NewUserDto user) throws NotFoundException;
-    UserWithCardsDto getUserById(UUID id) throws NotFoundException;
+    void deleteUser(UUID id) ;
+    UserDto updateUser(UUID id, NewUserDto user);
+    UserWithCardsDto getUserById(UUID id) ;
 
     Optional<UserWithCardsDto> getUserByEmail(String email);
 
@@ -21,9 +21,9 @@ public interface UserService {
     List<UserDto> getUsersWithBirthdayToday();
     Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable);
 
-    CardInfoDto createCardForUser(UUID userId, NewCardInfoDto cardInfo) throws NotFoundException;
-    void deleteCard(UUID cardId) throws NotFoundException;
-    CardInfoDto getCardById(UUID cardId) throws NotFoundException;
+    CardInfoDto createCardForUser(UUID userId, NewCardInfoDto cardInfo);
+    void deleteCard(UUID cardId) ;
+    CardInfoDto getCardById(UUID cardId);
 
     Optional<CardInfoDto> getCardByNumber(String cardNumber);
 

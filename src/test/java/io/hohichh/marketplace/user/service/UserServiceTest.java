@@ -1,6 +1,8 @@
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.exception.ResourceCreationConflictException;
+import io.hohichh.marketplace.user.exception.ResourceNotFoundException;
 import io.hohichh.marketplace.user.mapper.CardInfoMapper;
 import io.hohichh.marketplace.user.mapper.UserMapper;
 import io.hohichh.marketplace.user.model.CardInfo;
@@ -72,10 +74,27 @@ class UserServiceTest {
         verify(userRepository).save(userEntity);
         verify(userMapper).toUserDto(savedUserEntity);
     }
+
+    @Test
+    void createUser_shouldThrowResourceCreationConflictException_whenUserWithEmailExists() {
+        NewUserDto newUserDto = new NewUserDto("John", "Doe",
+                null, "john.doe@example.com");
+        assertThrows(ResourceCreationConflictException.class, () -> {
+            when(userRepository.findByEmail(newUserDto.email()))
+                    .thenReturn(Optional.of(new User()));
+
+            userService.createUser(newUserDto);
+
+            verify(userRepository).findByEmail(newUserDto.email());
+            verify(userMapper, never()).toUser(any());
+            verify(userRepository, never()).save(any());
+            verify(userMapper, never()).toUserDto(any());
+        });
+    }
     //====================================================================
     //DELETE USER TESTS
     @Test
-    void deleteUser_shouldCallDelete_whenUserExists() throws NotFoundException {
+    void deleteUser_shouldCallDelete_whenUserExists() {
         UUID userId = UUID.randomUUID();
 
         when(userRepository.existsById(userId)).thenReturn(true);
@@ -89,12 +108,12 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteUser_shouldThrowNotFoundException_whenUserDoesNotExist() {
+    void deleteUser_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
         UUID userId = UUID.randomUUID();
 
         when(userRepository.existsById(userId)).thenReturn(false);
 
-        assertThrows(NotFoundException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             userService.deleteUser(userId);
         });
 
@@ -105,7 +124,7 @@ class UserServiceTest {
     //====================================================================
     //UPDATE USER TESTS
     @Test
-    void updateUser_shouldUpdateAndReturnUserDto_whenUserExists() throws NotFoundException {
+    void updateUser_shouldUpdateAndReturnUserDto_whenUserExists()  {
         UUID userId = UUID.randomUUID();
         NewUserDto userToUpdate = new NewUserDto("Jane", "Doe",
                 null, "jane@gmail.com");
@@ -133,12 +152,12 @@ class UserServiceTest {
     }
 
     @Test
-    void updateUser_shouldThrowNotFoundException_whenUserDoesNotExist() throws NotFoundException {
+    void updateUser_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
         UUID userId = UUID.randomUUID();
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             userService.updateUser(userId, new NewUserDto("Jane", "Doe",
                     null, "jane@gmail.com"));
         });
@@ -147,6 +166,36 @@ class UserServiceTest {
         verify(userMapper, never()).updateUserFromDto(any(), any());
         verify(userRepository, never()).save(any());
         verify(userMapper, never()).toUserDto(any());
+    }
+
+    @Test
+    void updateUser_shouldThrowResourceCreationConflictException_whenUserWithEmailExists() {
+        UUID userId = UUID.randomUUID();
+        UUID anotherUserId = UUID.randomUUID();
+
+        NewUserDto userToUpdate = new NewUserDto("Jane", "Doe",
+                null, "jane@gmail.com");
+
+        User existingUserEntity = mock(User.class);
+        User anotherUserWithSameEmail = mock(User.class);
+
+        when(anotherUserWithSameEmail.getId()).thenReturn(anotherUserId);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(existingUserEntity));
+
+        when(userRepository.findByEmail(userToUpdate.email())).thenReturn(Optional.of(anotherUserWithSameEmail));
+
+
+        assertThatThrownBy(() -> userService.updateUser(userId, userToUpdate))
+                .isInstanceOf(ResourceCreationConflictException.class)
+                .hasMessage("Email " + userToUpdate.email() + " is already in use by another user.");
+
+
+        verify(userRepository).findById(userId);
+        verify(userRepository).findByEmail(userToUpdate.email());
+
+
+        verify(userMapper, never()).updateUserFromDto(any(), any());
+        verify(userRepository, never()).save(any());
     }
     //====================================================================
     //GET USER TESTS
@@ -175,12 +224,12 @@ class UserServiceTest {
     }
 
     @Test
-    void getUserById_shouldThrowNotFoundException_whenUserDoesNotExist() {
+    void getUserById_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
 
         UUID userId = UUID.randomUUID();
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(NotFoundException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             userService.getUserById(userId);
         });
 
@@ -315,7 +364,7 @@ class UserServiceTest {
     //====================================================================
     //CREATE CARD TESTS
     @Test
-    void createCardForUser_shouldSaveCard_whenUserExists() throws NotFoundException {
+    void createCardForUser_shouldSaveCard_whenUserExists() {
         UUID userId = UUID.randomUUID();
         NewCardInfoDto newCardDto = new NewCardInfoDto("1234", "Holder", LocalDate.now());
 
@@ -345,14 +394,14 @@ class UserServiceTest {
     }
 
     @Test
-    void createCardForUser_shouldThrowNotFoundException_whenUserDoesNotExist() {
+    void createCardForUser_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
 
         UUID userId = UUID.randomUUID();
         NewCardInfoDto newCardDto = new NewCardInfoDto("1234", "Holder", LocalDate.now());
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
 
-        assertThrows(NotFoundException.class, () -> {
+        assertThrows(ResourceNotFoundException.class, () -> {
             userService.createCardForUser(userId, newCardDto);
         });
 
@@ -360,10 +409,41 @@ class UserServiceTest {
         verify(cardRepository, never()).save(any());
     }
 
-    //====================================================================
+    @Test
+    void createCardForUser_shouldThrowResourceCreationConflictException_whenCardWithSameNumberExists() {
+        UUID userId = UUID.randomUUID();
+        UUID userIdWithSameCard = UUID.randomUUID();
+
+        NewCardInfoDto newCardDto = new NewCardInfoDto("1234",
+                "Holder", LocalDate.now());
+        String number = newCardDto.cardNumber();
+
+        User userEntity = mock(User.class);
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
+
+        User userEntityWithSameCard = mock(User.class);
+        when(userEntityWithSameCard.getId()).thenReturn(userIdWithSameCard);
+
+        CardInfo cardWithSameNumber = mock(CardInfo.class);
+        when(cardRepository.findByNumber(number)).thenReturn(Optional.of(cardWithSameNumber));
+
+        when(cardWithSameNumber.getUser()).thenReturn(userEntityWithSameCard);
+
+        assertThatThrownBy(() -> userService.createCardForUser(userId, newCardDto))
+                .isInstanceOf(ResourceCreationConflictException.class)
+                .hasMessage("Card with number 1234 already exists.");
+
+        verify(userRepository).findById(userId);
+        verify(cardRepository).findByNumber(number);
+        verify(cardRepository, never()).save(any());
+    }
+
+
+
+        //====================================================================
     //DELETE CARD TESTS
     @Test
-    void deleteCard_shouldCallDelete_whenCardExists() throws NotFoundException {
+    void deleteCard_shouldCallDelete_whenCardExists() {
         UUID cardId = UUID.randomUUID();
 
         when(cardRepository.existsById(cardId)).thenReturn(true);
@@ -376,13 +456,13 @@ class UserServiceTest {
     }
 
     @Test
-    void deleteCard_shouldThrowNotFoundException_whenCardDoesNotExist() {
+    void deleteCard_shouldThrowResourceNotFoundException_whenCardDoesNotExist() {
         UUID cardId = UUID.randomUUID();
 
         when(cardRepository.existsById(cardId)).thenReturn(false);
 
         assertThatThrownBy(() -> userService.deleteCard(cardId))
-                .isInstanceOf(NotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
 
         verify(cardRepository).existsById(cardId);
         verify(cardRepository, never()).deleteById(any());
@@ -390,7 +470,7 @@ class UserServiceTest {
 
     //GET CARD TESTS
     @Test
-    void getCardById_shouldReturnCardInfoDto_whenCardExists() throws NotFoundException {
+    void getCardById_shouldReturnCardInfoDto_whenCardExists() {
         UUID cardId = UUID.randomUUID();
         CardInfo cardEntity = new CardInfo();
         CardInfoDto expectedDto = new CardInfoDto(cardId, UUID.randomUUID(), "1234", "Holder", LocalDate.now());
@@ -418,7 +498,7 @@ class UserServiceTest {
         when(cardRepository.findById(cardId)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() -> userService.getCardById(cardId))
-                .isInstanceOf(NotFoundException.class);
+                .isInstanceOf(ResourceNotFoundException.class);
 
         verify(cardRepository).findById(cardId);
         verify(cardInfoMapper, never()).toCardInfoDto(any());

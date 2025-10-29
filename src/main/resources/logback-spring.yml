@@ -48,14 +48,14 @@ configuration:
   springProfile:
     dev:
       logger:
-        io.hohichh.marketplace.controller:
+        io.hohichh.marketplace.user.controller:
           level: DEBUG
           additivity: false
           appender-ref:
             - ref: CONSOLE
             - ref: FILE-CONTROLLERS
 
-        io.hohichh.marketplace.service:
+        io.hohichh.marketplace.user.service:
           level: DEBUG
           additivity: false
           appender-ref:
@@ -77,20 +77,20 @@ configuration:
             - ref: FILE-REPOSITORIES
 
       root:
-        level: INFO
+        level: DEBUG
         appender-ref:
           - ref: CONSOLE
 
     prod:
       logger:
-        io.hohichh.marketplace.controller:
+        io.hohichh.marketplace.user.controller:
           level: INFO
           additivity: false
           appender-ref:
             - ref: CONSOLE
             - ref: FILE-CONTROLLERS
 
-        io.hohichh.marketplace.service:
+        io.hohichh.marketplace.user.service:
           level: INFO
           additivity: false
           appender-ref:
@@ -112,7 +112,7 @@ configuration:
 
     test:
       logger:
-        io.hohichh.marketplace:
+        io.hohichh.marketplace.user:
           level: DEBUG
           additivity: false
           appender-ref:

@@ -1,3 +1,8 @@
+/*
+ * Author: Yelizaveta Verkovich aka Hohich
+ * Task: Implement service layer for user and card management
+ */
+
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
@@ -19,6 +24,11 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+/**
+ * Implementation of the {@link UserService} interface.
+ * Handles the business logic for managing users and their payment cards,
+ * interacting with the repositories.
+ */
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -27,6 +37,14 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final CardInfoMapper cardInfoMapper;
 
+    /**
+     * Constructs a new UserServiceImpl with the required repositories and mappers.
+     *
+     * @param userRepository Repository for user data access.
+     * @param cardRepository Repository for card data access.
+     * @param userMapper     Mapper for user entity/DTO conversion.
+     * @param cardInfoMapper Mapper for card entity/DTO conversion.
+     */
     @Autowired
     public UserServiceImpl(UserRepository userRepository,
                            CardRepository cardRepository,
@@ -38,11 +56,17 @@ public class UserServiceImpl implements UserService {
         this.cardInfoMapper = cardInfoMapper;
     }
 
+    /**
+     * {@inheritDoc}
+     * Checks if a user with the same email already exists before creation.
+     *
+     * @throws ResourceCreationConflictException if the email is already in use.
+     */
     @Override
     @Transactional
     public UserDto createUser(NewUserDto user) {
         String email = user.email();
-        if(userRepository.findByEmail(email).isPresent()){
+        if (userRepository.findByEmail(email).isPresent()) {
             throw new ResourceCreationConflictException("User with email " + email + " already exists.");
         }
         User savedUser = userRepository.save(
@@ -51,6 +75,12 @@ public class UserServiceImpl implements UserService {
         return userMapper.toUserDto(savedUser);
     }
 
+    /**
+     * {@inheritDoc}
+     * Checks if the user exists before attempting deletion.
+     *
+     * @throws ResourceNotFoundException if the user with the specified ID is not found.
+     */
     @Override
     @Transactional
     public void deleteUser(UUID id) {
@@ -60,6 +90,13 @@ public class UserServiceImpl implements UserService {
         userRepository.deleteById(id);
     }
 
+    /**
+     * {@inheritDoc}
+     * Finds the existing user, validates the new email for uniqueness (if changed), and applies updates.
+     *
+     * @throws ResourceNotFoundException       if the user with the specified ID is not found.
+     * @throws ResourceCreationConflictException if the new email is already in use by another user.
+     */
     @Override
     @Transactional
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
@@ -79,6 +116,12 @@ public class UserServiceImpl implements UserService {
         return userMapper.toUserDto(updatedUser);
     }
 
+    /**
+     * {@inheritDoc}
+     * Retrieves the user and their associated cards from the repositories.
+     *
+     * @throws ResourceNotFoundException if the user with the specified ID is not found.
+     */
     @Override
     @Transactional(readOnly = true)
     public UserWithCardsDto getUserById(UUID id) {
@@ -90,6 +133,10 @@ public class UserServiceImpl implements UserService {
         return userMapper.toUserWithCardsDto(user, cards);
     }
 
+    /**
+     * {@inheritDoc}
+     * Finds the user by email and, if found, fetches their associated cards.
+     */
     @Override
     @Transactional(readOnly = true)
     public Optional<UserWithCardsDto> getUserByEmail(String email) {
@@ -104,6 +151,10 @@ public class UserServiceImpl implements UserService {
                 userMapper.toUserWithCardsDto(user, cards));
     }
 
+    /**
+     * {@inheritDoc}
+     * Maps the resulting Page of User entities to a Page of UserDto.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
@@ -112,6 +163,10 @@ public class UserServiceImpl implements UserService {
         return userPage.map(userMapper::toUserDto);
     }
 
+    /**
+     * {@inheritDoc}
+     * Delegates to the repository to find users with a matching birthday and maps the results.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<UserDto> getUsersWithBirthdayToday() {
@@ -120,6 +175,10 @@ public class UserServiceImpl implements UserService {
         return users.stream().map(userMapper::toUserDto).toList();
     }
 
+    /**
+     * {@inheritDoc}
+     * Delegates to the repository to perform the search and maps the resulting page.
+     */
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable) {
@@ -128,9 +187,17 @@ public class UserServiceImpl implements UserService {
         return userPage.map(userMapper::toUserDto);
     }
 
+    /**
+     * {@inheritDoc}
+     * Finds the user, checks if the card number already exists for another user,
+     * and then associates the new card with the user.
+     *
+     * @throws ResourceNotFoundException       if the user with the specified ID is not found.
+     * @throws ResourceCreationConflictException if the card number is already associated with another user.
+     */
     @Override
     @Transactional
-    public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard)  {
+    public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found."));
 
@@ -148,6 +215,12 @@ public class UserServiceImpl implements UserService {
         return cardInfoMapper.toCardInfoDto(savedCard);
     }
 
+    /**
+     * {@inheritDoc}
+     * Checks if the card exists before attempting deletion.
+     *
+     * @throws ResourceNotFoundException if the card with the specified ID is not found.
+     */
     @Override
     @Transactional
     public void deleteCard(UUID cardId) {
@@ -157,15 +230,23 @@ public class UserServiceImpl implements UserService {
         cardRepository.deleteById(cardId);
     }
 
+    /**
+     * {@inheritDoc}
+     *
+     * @throws ResourceNotFoundException if the card with the specified ID is not found.
+     */
     @Override
     @Transactional(readOnly = true)
-    public CardInfoDto getCardById(UUID cardId)  {
+    public CardInfoDto getCardById(UUID cardId) {
         CardInfo cardInfo = cardRepository.findById(cardId)
                 .orElseThrow(() -> new ResourceNotFoundException("Card with id " + cardId + " not found."));
 
         return cardInfoMapper.toCardInfoDto(cardInfo);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     @Transactional(readOnly = true)
     public Optional<CardInfoDto> getCardByNumber(String cardNumber) {
@@ -178,6 +259,11 @@ public class UserServiceImpl implements UserService {
         return Optional.of(cardInfoDto);
     }
 
+    /**
+     * {@inheritDoc}
+     * This implementation retrieves cards based on the user ID. If the user ID does not exist,
+     * it will return an empty list rather than throwing an exception.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<CardInfoDto> getCardsByUserId(UUID userId) {
@@ -185,6 +271,11 @@ public class UserServiceImpl implements UserService {
         return cardInfoMapper.toCardInfoDtoList(cards);
     }
 
+    /**
+     * {@inheritDoc}
+     * Uses a repository method (likely a custom query) to find all cards
+     * where the expiration date is in the past.
+     */
     @Override
     @Transactional(readOnly = true)
     public List<CardInfoDto> getExpiredCards() {

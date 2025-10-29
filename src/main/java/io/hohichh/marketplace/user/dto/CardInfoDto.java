@@ -2,10 +2,11 @@ package io.hohichh.marketplace.user.dto;
 
 import jakarta.validation.constraints.*;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.UUID;
 
-public record CardInfoDto(
+public record CardInfoDto (
     @NotNull UUID id,
     @NotNull UUID userId,
 
@@ -18,5 +19,5 @@ public record CardInfoDto(
     String cardHolderName,
 
     @NotNull
-    LocalDate expirationDate) {
+    LocalDate expirationDate) implements Serializable{
 }

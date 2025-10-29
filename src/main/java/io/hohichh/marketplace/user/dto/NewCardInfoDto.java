@@ -4,6 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 
 public record NewCardInfoDto(
@@ -14,5 +15,5 @@ public record NewCardInfoDto(
         @Size(max = 255)
     String cardHolderName,
         @NotNull
-    LocalDate expirationDate) {
+    LocalDate expirationDate) implements Serializable {
 }

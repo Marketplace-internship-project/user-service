@@ -1,5 +1,6 @@
 package io.hohichh.marketplace.user.dto;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
@@ -13,5 +14,5 @@ public record UserWithCardsDto(
                                @Size(max = 255) String surname,
                                @Past LocalDate birthDate,
                                @Email @NotBlank @Size(max = 255) String email,
-                               @NotNull @Valid List<CardInfoDto> cards) {
+                               @NotNull @Valid List<CardInfoDto> cards) implements Serializable {
 }

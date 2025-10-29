@@ -8,6 +8,8 @@ package io.hohichh.marketplace.user.controller;
 import io.hohichh.marketplace.user.dto.*;
 import io.hohichh.marketplace.user.service.UserService;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.HttpStatus;
@@ -24,10 +26,11 @@ import java.util.UUID;
  * All endpoints are mapped under the base path "/api/v1".
  */
 @RestController
-@RequestMapping("/api/v1")
+@RequestMapping("/v1")
 public class RestUserController {
 
     private final UserService userService;
+    private final static Logger logger = LoggerFactory.getLogger(RestUserController.class);
 
     /**
      * Constructs a new RestUserController with the necessary UserService.
@@ -36,6 +39,8 @@ public class RestUserController {
      */
     public RestUserController(UserService userService){
         this.userService = userService;
+
+        logger.trace("RestUserController initialized succesfully: userService has been injected");
     }
 
     //=========== USER METHODS ========================================================
@@ -49,7 +54,11 @@ public class RestUserController {
      */
     @PostMapping("/users")
     public ResponseEntity<UserDto> createUser(@Valid @RequestBody NewUserDto newUserDto) {
+        logger.debug("Received request to create user");
+
         UserDto createdUser = userService.createUser(newUserDto);
+
+        logger.info("User created successfully with id: {}", createdUser.id());
         return ResponseEntity.status(HttpStatus.CREATED).body(createdUser);
     }
 
@@ -63,7 +72,11 @@ public class RestUserController {
      */
     @PutMapping("/users/{id}")
     public ResponseEntity<UserDto> updateUser(@PathVariable UUID id, @Valid @RequestBody NewUserDto userDto) {
+        logger.debug("Received request to update user with id: {}", id);
+
         UserDto updatedUser = userService.updateUser(id, userDto);
+
+        logger.info("User with id: {} updated successfully", id);
         return ResponseEntity.ok(updatedUser);
     }
 
@@ -76,7 +89,11 @@ public class RestUserController {
      */
     @DeleteMapping("/users/{id}")
     public ResponseEntity<Void> deleteUser(@PathVariable UUID id) {
+        logger.debug("Received request to delete user with id: {}", id);
+
         userService.deleteUser(id);
+
+        logger.info("User with id: {} deleted successfully", id);
         return ResponseEntity.noContent().build();
     }
 
@@ -89,7 +106,11 @@ public class RestUserController {
      */
     @GetMapping("/users/{id}")
     public ResponseEntity<UserWithCardsDto> getUserById(@PathVariable UUID id) {
+        logger.debug("Received request to get user with id: {}", id);
+
         UserWithCardsDto user = userService.getUserById(id);
+
+        logger.info("User with id: {} retrieved successfully", id);
         return ResponseEntity.ok(user);
     }
 
@@ -103,7 +124,14 @@ public class RestUserController {
      */
     @GetMapping(value = "/users", params = "email")
     public ResponseEntity<UserWithCardsDto> getUserByEmail(@RequestParam String email) {
+        logger.debug("Received request to get user with email: {}", email);
+
         Optional<UserWithCardsDto> userOpt = userService.getUserByEmail(email);
+
+        logger.debug(
+                (userOpt.isPresent()? "Retrieve user with email: {} successfully"
+                        : "No such user with email: {}"), email);
+        logger.info("Get user by email request processed successfully");
         return userOpt.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -122,14 +150,21 @@ public class RestUserController {
     public ResponseEntity<Page<UserDto>> getAllUsersOrSearch(
             @RequestParam(name = "search", required = false) String searchTerm,
             Pageable pageable) {
+        logger.debug("Received request to get users with search term: {}", searchTerm);
 
         if (searchTerm != null && !searchTerm.isBlank()) {
-            // Режим поиска
+
             Page<UserDto> users = userService.getUsersBySearchTerm(searchTerm, pageable);
+
+            logger.debug("Search for users with term: {} returned {} results", searchTerm, users.getTotalElements());
+            logger.info("Get users by search request processed successfully");
             return ResponseEntity.ok(users);
         } else {
-            // Режим "получить всех"
+
             Page<UserDto> users = userService.getAllUsers(pageable);
+
+            logger.debug("Retrieved all users, total count: {}", users.getTotalElements());
+            logger.info("Get all users request processed successfully");
             return ResponseEntity.ok(users);
         }
     }
@@ -142,7 +177,11 @@ public class RestUserController {
      */
     @GetMapping("/users/birthdays")
     public ResponseEntity<List<UserDto>> getUsersWithBirthdayToday() {
+        logger.debug("Received request to get users with birthdays today");
+
         List<UserDto> users = userService.getUsersWithBirthdayToday();
+
+        logger.info("Found {} users with birthdays today", users.size());
         return ResponseEntity.ok(users);
     }
 
@@ -161,8 +200,11 @@ public class RestUserController {
     public ResponseEntity<CardInfoDto> createCardForUser(
             @PathVariable UUID userId,
             @Valid @RequestBody NewCardInfoDto newCardDto) {
+        logger.debug("Received request to create card for user with id: {}", userId);
 
         CardInfoDto newCard = userService.createCardForUser(userId, newCardDto);
+
+        logger.info("Card created successfully with id: {} for user id: {}", newCard.id(), userId);
         return ResponseEntity.status(HttpStatus.CREATED).body(newCard);
     }
 
@@ -175,7 +217,11 @@ public class RestUserController {
      */
     @DeleteMapping("/cards/{cardId}")
     public ResponseEntity<Void> deleteCard(@PathVariable UUID cardId) {
+        logger.debug("Received request to delete card with id: {}", cardId);
+
         userService.deleteCard(cardId);
+
+        logger.info("Card with id: {} deleted successfully", cardId);
         return ResponseEntity.noContent().build();
     }
 
@@ -188,7 +234,11 @@ public class RestUserController {
      */
     @GetMapping("/cards/{cardId}")
     public ResponseEntity<CardInfoDto> getCardById(@PathVariable UUID cardId) {
+        logger.debug("Received request to get card with id: {}", cardId);
+
         CardInfoDto card = userService.getCardById(cardId);
+
+        logger.info("Card with id: {} retrieved successfully", cardId);
         return ResponseEntity.ok(card);
     }
 
@@ -202,7 +252,13 @@ public class RestUserController {
      */
     @GetMapping(value = "/cards", params = "number")
     public ResponseEntity<CardInfoDto> getCardByNumber(@RequestParam("number") String cardNumber) {
+        logger.debug("Received request to get card with number: {}", cardNumber);
+
         Optional<CardInfoDto> cardOpt = userService.getCardByNumber(cardNumber);
+
+        logger.debug("Search for card with number: {} {}", cardNumber,
+                cardOpt.isPresent() ? "succeeded" : "failed - no cards with such number");
+        logger.info("Get card by number request processed successfully");
         return cardOpt.map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -216,7 +272,11 @@ public class RestUserController {
      */
     @GetMapping("/users/{userId}/cards")
     public ResponseEntity<List<CardInfoDto>> getCardsByUserId(@PathVariable UUID userId) {
+        logger.debug("Received request to get cards for user with id: {}", userId);
+
         List<CardInfoDto> cards = userService.getCardsByUserId(userId);
+
+        logger.info("Retrieved {} cards for user with id: {}", cards.size(), userId);
         return ResponseEntity.ok(cards);
     }
 
@@ -228,7 +288,11 @@ public class RestUserController {
      */
     @GetMapping("/cards/expired")
     public ResponseEntity<List<CardInfoDto>> getExpiredCards() {
+        logger.debug("Received request to get expired cards");
+
         List<CardInfoDto> cards = userService.getExpiredCards();
+
+        logger.info("Found {} expired cards", cards.size());
         return ResponseEntity.ok(cards);
     }
 }

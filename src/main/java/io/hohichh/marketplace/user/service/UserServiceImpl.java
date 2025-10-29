@@ -15,6 +15,8 @@ import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -83,6 +85,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public void deleteUser(UUID id) {
         if (!userRepository.existsById(id)) {
             throw new ResourceNotFoundException("User with id " + id + " not found.");
@@ -99,6 +102,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#id")
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
@@ -124,6 +128,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "#id")
     public UserWithCardsDto getUserById(UUID id) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
@@ -169,6 +174,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "usersWithBirthdayToday")
     public List<UserDto> getUsersWithBirthdayToday() {
         List<User> users = userRepository.findUsersWithBirthDayToday();
 
@@ -197,13 +203,13 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found."));
 
         String number = newCard.cardNumber();
-        Optional<CardInfo> existingCard = cardRepository.findByNumber(number);
-        if (existingCard.isPresent() && !existingCard.get().getUser().getId().equals(userId)) {
+        if (cardRepository.findByNumber(number).isPresent()) {
             throw new ResourceCreationConflictException("Card with number " + number + " already exists.");
         }
 
@@ -278,6 +284,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "expiredCards")
     public List<CardInfoDto> getExpiredCards() {
         List<CardInfo> expiredCards = cardRepository.findExpiredCardsNative();
 

@@ -9,6 +9,7 @@ import io.hohichh.marketplace.user.model.CardInfo;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -19,7 +20,10 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 
+import java.time.Clock;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -45,8 +49,13 @@ class UserServiceTest {
     @Mock
     private CardInfoMapper cardInfoMapper;
 
+    @Mock
+    private Clock clock;
+    private final LocalDate FROZEN_DATE = LocalDate.of(2025, 1, 15);
+
     @InjectMocks
     private UserServiceImpl userService;
+
 
     //========================================================================
     //CREATE USER TEST
@@ -310,17 +319,27 @@ class UserServiceTest {
 
     @Test
     void getUsersWithBirthdayToday_shouldReturnListOfUserDtos() {
+        Instant fixedInstant = FROZEN_DATE.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        when(clock.instant()).thenReturn(fixedInstant);
+        when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+
         User user1 = new User();
         user1.setEmail("a@a.com");
         User user2 = new User();
         user2.setEmail("b@b.com");
 
-        UserDto dto1 = new UserDto(UUID.randomUUID(), "A", null, null, "a@a.com");
-        UserDto dto2 = new UserDto(UUID.randomUUID(), "B", null, null, "b@b.com");
+        UserDto dto1 = new UserDto(UUID.randomUUID(), "A",
+                null,
+                LocalDate.of(1993, FROZEN_DATE.getMonth(), FROZEN_DATE.getDayOfMonth()),
+                "a@a.com");
+        UserDto dto2 = new UserDto(UUID.randomUUID(), "B",
+                null,
+                LocalDate.of(2005, FROZEN_DATE.getMonth(), FROZEN_DATE.getDayOfMonth()),
+                "b@b.com");
 
         List<User> userList = List.of(user1, user2);
 
-        when(userRepository.findUsersWithBirthDayToday()).thenReturn(userList);
+        when(userRepository.findUsersWithBirthDayToday(FROZEN_DATE)).thenReturn(userList);
         when(userMapper.toUserDto(user1)).thenReturn(dto1);
         when(userMapper.toUserDto(user2)).thenReturn(dto2);
 
@@ -332,7 +351,7 @@ class UserServiceTest {
                 .extracting(UserDto::email)
                 .containsExactly("a@a.com", "b@b.com");
 
-        verify(userRepository).findUsersWithBirthDayToday();
+        verify(userRepository).findUsersWithBirthDayToday(FROZEN_DATE);
         verify(userMapper).toUserDto(user1);
         verify(userMapper).toUserDto(user2);
     }
@@ -566,12 +585,20 @@ class UserServiceTest {
 
     @Test
     void getExpiredCards_shouldReturnListOfExpiredCardInfoDtos() {
+        Instant fixedInstant = FROZEN_DATE.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        when(clock.instant()).thenReturn(fixedInstant);
+        when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+
         List<CardInfo> expiredCardList = List.of(new CardInfo());
         List<CardInfoDto> expectedDtoList = List.of(
-                new CardInfoDto(UUID.randomUUID(), UUID.randomUUID(), "9999", "Expired Holder", LocalDate.now().minusDays(1))
+                new CardInfoDto(UUID.randomUUID(),
+                        UUID.randomUUID(),
+                        "9999",
+                        "Expired Holder",
+                        FROZEN_DATE.minusDays(1))
         );
 
-        when(cardRepository.findExpiredCardsNative()).thenReturn(expiredCardList);
+        when(cardRepository.findExpiredCardsNative(FROZEN_DATE)).thenReturn(expiredCardList);
         when(cardInfoMapper.toCardInfoDtoList(expiredCardList)).thenReturn(expectedDtoList);
 
         List<CardInfoDto> result = userService.getExpiredCards();
@@ -581,7 +608,7 @@ class UserServiceTest {
                 .hasSize(1);
         assertThat(result.get(0).cardNumber()).isEqualTo("9999");
 
-        verify(cardRepository).findExpiredCardsNative();
+        verify(cardRepository).findExpiredCardsNative(FROZEN_DATE);
         verify(cardInfoMapper).toCardInfoDtoList(expiredCardList);
     }
 }

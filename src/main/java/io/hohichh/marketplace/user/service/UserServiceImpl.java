@@ -195,8 +195,12 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
-        logger.debug("Fetching all users with pagination: page number {}, page size {}",
-                pageable.getPageNumber(), pageable.getPageSize());
+        if (pageable.isPaged()) {
+            logger.debug("Fetching all users with pagination: page number {}, page size {}",
+                    pageable.getPageNumber(), pageable.getPageSize());
+        } else {
+            logger.debug("Fetching all users (unpaged)");
+        }
 
         Page<User> userPage = userRepository.findAll(pageable);
 
@@ -227,8 +231,13 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable) {
-        logger.debug("Searching users with term: '{}' with pagination: page number {}, page size {}",
-                searchTerm, pageable.getPageNumber(), pageable.getPageSize());
+        if (pageable.isPaged()) {
+            logger.debug("Searching users with term: '{}' with pagination: page number {}, page size {}",
+                    searchTerm, pageable.getPageNumber(), pageable.getPageSize());
+        } else {
+            logger.debug("Fetching all users with search term: '{}' (unpaged)", searchTerm);
+        }
+
         Page<User> userPage = userRepository.findBySearchTerm(searchTerm, pageable);
 
         logger.info("Found {} users by search term successfully", userPage.getNumberOfElements());

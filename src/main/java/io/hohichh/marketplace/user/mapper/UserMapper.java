@@ -23,7 +23,7 @@ import java.util.List;
  * <p>
  * This mapper is managed by Spring ({@code componentModel = "spring"}).
  */
-@Mapper(componentModel = "spring")
+@Mapper(componentModel = "spring", uses = {CardInfoMapper.class})
 public interface UserMapper {
 
     /**

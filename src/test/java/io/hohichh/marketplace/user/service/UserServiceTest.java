@@ -422,12 +422,9 @@ class UserServiceTest {
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
 
         User userEntityWithSameCard = mock(User.class);
-        when(userEntityWithSameCard.getId()).thenReturn(userIdWithSameCard);
 
         CardInfo cardWithSameNumber = mock(CardInfo.class);
         when(cardRepository.findByNumber(number)).thenReturn(Optional.of(cardWithSameNumber));
-
-        when(cardWithSameNumber.getUser()).thenReturn(userEntityWithSameCard);
 
         assertThatThrownBy(() -> userService.createCardForUser(userId, newCardDto))
                 .isInstanceOf(ResourceCreationConflictException.class)

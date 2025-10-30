@@ -72,6 +72,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "usersWithBirthdayToday", allEntries = true)
     public UserDto createUser(NewUserDto user) {
         logger.debug("Attempting to create user with email: {}", user.email());
 
@@ -96,7 +97,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = "users", key = "#id")
+    @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public void deleteUser(UUID id) {
         logger.debug("Attempting to delete user with id: {}", id);
 
@@ -118,7 +119,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
-    @CacheEvict(value = "users", key = "#id")
+    @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
         logger.debug("Attempting to update user with id: {}", id);
         User existingUser = userRepository.findById(id)

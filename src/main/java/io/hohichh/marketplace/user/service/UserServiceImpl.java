@@ -19,11 +19,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
+import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -41,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final CardInfoMapper cardInfoMapper;
 
+    private final Clock clock;
     private final static Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     /**
@@ -55,11 +59,13 @@ public class UserServiceImpl implements UserService {
     public UserServiceImpl(UserRepository userRepository,
                            CardRepository cardRepository,
                            UserMapper userMapper,
-                           CardInfoMapper cardInfoMapper) {
+                           CardInfoMapper cardInfoMapper,
+                           Clock clock) {
         this.userRepository = userRepository;
         this.cardRepository = cardRepository;
         this.userMapper = userMapper;
         this.cardInfoMapper = cardInfoMapper;
+        this.clock = clock;
 
         logger.trace("UserServiceImpl initialized with UserRepository and CardRepository");
     }
@@ -217,8 +223,8 @@ public class UserServiceImpl implements UserService {
     @Cacheable(value = "usersWithBirthdayToday")
     public List<UserDto> getUsersWithBirthdayToday() {
         logger.debug("Fetching users with birthday today");
-
-        List<User> users = userRepository.findUsersWithBirthDayToday();
+        LocalDate today = LocalDate.now(clock);
+        List<User> users = userRepository.findUsersWithBirthDayToday(today);
 
         logger.info("Fetched {} users with birthday today", users.size());
         return users.stream().map(userMapper::toUserDto).toList();
@@ -364,8 +370,8 @@ public class UserServiceImpl implements UserService {
     @Cacheable(value = "expiredCards")
     public List<CardInfoDto> getExpiredCards() {
         logger.debug("Fetching expired cards");
-
-        List<CardInfo> expiredCards = cardRepository.findExpiredCardsNative();
+        LocalDate today = LocalDate.now(clock);
+        List<CardInfo> expiredCards = cardRepository.findExpiredCardsNative(today);
 
         logger.info("Fetched {} expired cards", expiredCards.size());
         return cardInfoMapper.toCardInfoDtoList(expiredCards);

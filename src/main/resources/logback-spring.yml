@@ -1,0 +1,130 @@
+configuration:
+  property:
+    name: LOG_PATH
+    value: log
+
+  appender:
+    CONSOLE:
+      class: ch.qos.logback.core.ConsoleAppender
+      encoder:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%15.15t] %cyan(%-40.40logger{39}) : %msg%n"
+
+    FILE-CONTROLLERS:
+      class: ch.qos.logback.core.rolling.RollingFileAppender
+      file: ${LOG_PATH}/controllers.log
+      encoder:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %-40.40logger{39} : %msg%n"
+      rollingPolicy:
+        class: ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy
+        fileNamePattern: ${LOG_PATH}/archived/controllers.%d{yyyy-MM-dd}.%i.log.gz
+        maxFileSize: 10MB
+        maxHistory: 30
+        totalSizeCap: 1GB
+
+    FILE-SERVICES:
+      class: ch.qos.logback.core.rolling.RollingFileAppender
+      file: ${LOG_PATH}/services.log
+      encoder:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %-40.40logger{39} : %msg%n"
+      rollingPolicy:
+        class: ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy
+        fileNamePattern: ${LOG_PATH}/archived/services.%d{yyyy-MM-dd}.%i.log.gz
+        maxFileSize: 10MB
+        maxHistory: 30
+        totalSizeCap: 1GB
+
+    FILE-REPOSITORIES:
+      class: ch.qos.logback.core.rolling.RollingFileAppender
+      file: ${LOG_PATH}/repositories.log
+      encoder:
+        pattern: "%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level [%t] %-40.40logger{39} : %msg%n"
+      rollingPolicy:
+        class: ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy
+        fileNamePattern: ${LOG_PATH}/archived/repositories.%d{yyyy-MM-dd}.%i.log.gz
+        maxFileSize: 10MB
+        maxHistory: 30
+        totalSizeCap: 1GB
+
+  springProfile:
+    dev:
+      logger:
+        io.hohichh.marketplace.controller:
+          level: DEBUG
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-CONTROLLERS
+
+        io.hohichh.marketplace.service:
+          level: DEBUG
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-SERVICES
+
+        org.hibernate.SQL:
+          level: DEBUG
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-REPOSITORIES
+
+        org.hibernate.type.descriptor.sql:
+          level: TRACE
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-REPOSITORIES
+
+      root:
+        level: INFO
+        appender-ref:
+          - ref: CONSOLE
+
+    prod:
+      logger:
+        io.hohichh.marketplace.controller:
+          level: INFO
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-CONTROLLERS
+
+        io.hohichh.marketplace.service:
+          level: INFO
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-SERVICES
+
+        org.hibernate.SQL:
+          level: ERROR
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+            - ref: FILE-REPOSITORIES
+
+      root:
+        level: WARN
+        appender-ref:
+          - ref: CONSOLE
+          - ref: FILE-SERVICES
+
+    test:
+      logger:
+        io.hohichh.marketplace:
+          level: DEBUG
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+
+        org.hibernate.SQL:
+          level: DEBUG
+          additivity: false
+          appender-ref:
+            - ref: CONSOLE
+
+      root:
+        level: INFO
+        appender-ref:
+          - ref: CONSOLE

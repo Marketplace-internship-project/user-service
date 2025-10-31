@@ -56,8 +56,8 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return A {@link List} of {@link User} entities whose birthday is today.
      */
     @Query(value = "SELECT id, name, surname, birth_date, email FROM users u " +
-            "WHERE EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM :date) " +
-            "AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM :date)",
+            "WHERE EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM CAST(:date AS date)) " +
+            "AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM CAST(:date AS date))",
             nativeQuery = true)
     List<User> findUsersWithBirthDayToday(@Param("date") LocalDate date);
 }

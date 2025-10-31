@@ -1,52 +1,252 @@
 package io.hohichh.marketplace.user.integration;
 
-import io.hohichh.marketplace.user.AbstractApplicationTest;
-import io.hohichh.marketplace.user.dto.NewUserDto;
-import io.hohichh.marketplace.user.dto.UserDto;
-import io.hohichh.marketplace.user.dto.UserWithCardsDto;
-import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
+import io.hohichh.marketplace.user.dto.*;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
-import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.web.client.TestRestTemplate;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.List;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
-public class UserCachingApplicationTest extends AbstractApplicationTest {
+
+class UserCachingApplicationTest extends AbstractApplicationTest {
+
+    @MockitoSpyBean
+    private UserRepository userRepositorySpy;
+
+    @MockitoSpyBean
+    private CardRepository cardRepositorySpy;
+
+    private NewUserDto testUserDto;
+    private NewCardInfoDto testCardDto;
+    private final LocalDate MOCKED_BIRTHDAY = LocalDate.of(1990, 10, 30);
+    private final LocalDate OTHER_DAY = LocalDate.of(2000, 1, 1);
+
+    @BeforeEach
+    void setUp() {
+        testUserDto = new NewUserDto(
+                "Cache",
+                "Tester",
+                OTHER_DAY,
+                "cache.tester@gmail.com"
+        );
+
+        testCardDto = new NewCardInfoDto(
+                "1111-2222-3333-4444",
+                "Cache Tester",
+                LocalDate.of(2030, 1, 1) // Точно не просроченная
+        );
+    }
+
+
+    private void setMockToday(LocalDate today) {
+        Instant fixedInstant = today.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        when(clock.instant()).thenReturn(fixedInstant);
+        when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
+    }
+
+    private UserDto createTestUser(NewUserDto userDto) {
+        ResponseEntity<UserDto> response = restTemplate.postForEntity(
+                "/v1/users",
+                userDto,
+                UserDto.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response.getBody();
+    }
+
+
+    private void updateTestUser(UUID userId, NewUserDto userDto) {
+        HttpEntity<NewUserDto> requestEntity = new HttpEntity<>(userDto);
+        restTemplate.exchange(
+                "/v1/users/" + userId,
+                HttpMethod.PUT,
+                requestEntity,
+                UserDto.class
+        );
+    }
+
+    private void deleteTestUser(UUID userId) {
+        restTemplate.delete("/v1/users/" + userId);
+    }
+
+
+    private void getUserById(UUID userId) {
+        restTemplate.getForEntity(
+                "/v1/users/" + userId,
+                UserWithCardsDto.class
+        );
+    }
+
+    private void getBirthdayUsers() {
+        ParameterizedTypeReference<List<UserDto>> responseType = new ParameterizedTypeReference<>() {};
+        restTemplate.exchange(
+                "/v1/users/birthdays",
+                HttpMethod.GET,
+                null,
+                responseType
+        );
+    }
+
+    private CardInfoDto createTestCard(UUID userId, NewCardInfoDto cardDto) {
+        String url = "/v1/users/" + userId + "/cards";
+        ResponseEntity<CardInfoDto> response = restTemplate.postForEntity(
+                url,
+                cardDto,
+                CardInfoDto.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        return response.getBody();
+    }
+
+    private void getExpiredCards() {
+        ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
+        restTemplate.exchange(
+                "/v1/cards/expired",
+                HttpMethod.GET,
+                null,
+                responseType
+        );
+    }
 
 
     @Test
-    void testCacheEvictionOnUpdate() {
-        //--ARRANGE: CREATE USERS
-        NewUserDto newUser = new NewUserDto("Cache", "Test", null, "cache@test.com");
-        UserDto createdUser = restTemplate.postForEntity("/api/v1/users", newUser, UserDto.class).getBody();
-        UUID userId = createdUser.id();
+    void getUserById_shouldCacheUserOnFirstCall() {
+        UserDto createdUser = createTestUser(testUserDto);
+        clearInvocations(userRepositorySpy);
 
-        //--ACT 1: GET USER (MUST STORED IN CACHE NOW)
-        restTemplate.getForEntity("/api/v1/users/" + userId, UserWithCardsDto.class);
+        getUserById(createdUser.id());
+        getUserById(createdUser.id());
+        getUserById(createdUser.id());
 
-        //--ACT 2: UPDATE USER (MUST EVICT CACHE)
-        NewUserDto updatedUserDto = new NewUserDto("Cache", "Updated", null, "cache-updated@test.com");
-        restTemplate.put("/api/v1/users/" + userId, updatedUserDto);
-
-        //--ACT 3: DELETE FROM DB (TO CHECK IF THE CACHE DIDN'T EVICTED)
-        userRepository.deleteById(userId);
-
-        //--ACT 4: GET DELETED USER (MUST THROW EXCEPTION IF CACHE HAS EVICTED)
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> getResponse = restTemplate.getForEntity(
-                "/api/v1/users/" + userId,
-                GlobalExceptionHandler.ErrorResponse.class
-        );
-
-        //--ASSERT
-        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(getResponse.getBody().message()).contains("User with id " + userId + " not found.");
+        verify(userRepositorySpy, times(1)).findById(createdUser.id());
     }
 
+    @Test
+    void updateUser_shouldEvict_usersCache() {
+        UserDto createdUser = createTestUser(testUserDto);
+
+        getUserById(createdUser.id());
+        clearInvocations(userRepositorySpy);
+
+        updateTestUser(createdUser.id(), new NewUserDto("New", "Name", null, "new.email@gmail.com"));
+
+        getUserById(createdUser.id());
+
+        verify(userRepositorySpy, times(2)).findById(createdUser.id());
+    }
+
+    @Test
+    void deleteUser_shouldEvict_usersCache() {
+        UserDto createdUser = createTestUser(testUserDto);
+
+        getUserById(createdUser.id());
+        clearInvocations(userRepositorySpy);
+
+        deleteTestUser(createdUser.id());
+
+        restTemplate.getForEntity(
+                "/v1/users/" + createdUser.id(),
+                Object.class
+        );
+
+        verify(userRepositorySpy, times(1)).findById(createdUser.id());
+    }
+
+
+
+    @Test
+    void getBirthdayUsers_shouldCacheResult() {
+        setMockToday(MOCKED_BIRTHDAY);
+
+        getBirthdayUsers();
+        getBirthdayUsers();
+
+        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+    }
+
+    @Test
+    void createUser_shouldEvict_birthdayCache() {
+        setMockToday(MOCKED_BIRTHDAY);
+
+        getBirthdayUsers();
+        clearInvocations(userRepositorySpy);
+
+        createTestUser(testUserDto);
+
+        getBirthdayUsers();
+
+        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+    }
+
+    @Test
+    void updateUser_shouldEvict_birthdayCache() {
+        setMockToday(MOCKED_BIRTHDAY);
+        UserDto createdUser = createTestUser(testUserDto);
+
+        getBirthdayUsers();
+        clearInvocations(userRepositorySpy);
+
+        updateTestUser(createdUser.id(), new NewUserDto("New", "Name", null, "new.email@gmail.com"));
+
+        getBirthdayUsers();
+
+        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+    }
+
+    @Test
+    void deleteUser_shouldEvict_birthdayCache() {
+        setMockToday(MOCKED_BIRTHDAY);
+        UserDto createdUser = createTestUser(testUserDto);
+
+        getBirthdayUsers();
+        clearInvocations(userRepositorySpy);
+
+        deleteTestUser(createdUser.id());
+
+        getBirthdayUsers();
+
+        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+    }
+
+    @Test
+    void createCardForUser_shouldEvict_usersCache() {
+        UserDto createdUser = createTestUser(testUserDto);
+
+        getUserById(createdUser.id());
+        clearInvocations(userRepositorySpy);
+
+        createTestCard(createdUser.id(), testCardDto);
+
+        getUserById(createdUser.id());
+
+        verify(userRepositorySpy, times(2)).findById(createdUser.id());
+    }
+
+    @Test
+    void getExpiredCards_shouldCacheResult() {
+        final LocalDate MOCKED_TODAY = LocalDate.of(2025, 1, 1);
+        setMockToday(MOCKED_TODAY);
+
+        getExpiredCards();
+        getExpiredCards();
+
+        verify(cardRepositorySpy, times(1)).findExpiredCardsNative(MOCKED_TODAY);
+    }
 }

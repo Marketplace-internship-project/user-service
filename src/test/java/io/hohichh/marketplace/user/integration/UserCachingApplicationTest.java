@@ -28,12 +28,6 @@ import static org.mockito.Mockito.when;
 
 
 class UserCachingApplicationTest extends AbstractApplicationTest {
-    @MockitoSpyBean
-    private UserRepository userRepository;
-
-
-    @MockitoSpyBean
-    private CardRepository cardRepository;
 
     private NewUserDto testUserDto;
     private NewCardInfoDto testCardDto;

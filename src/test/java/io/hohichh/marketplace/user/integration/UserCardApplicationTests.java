@@ -28,12 +28,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class UserCardApplicationTests extends AbstractApplicationTest {
-    @MockitoSpyBean
-    private UserRepository userRepository;
-
-    @MockitoSpyBean
-    private CardRepository cardRepository;
-
     private NewUserDto testUser;
     private NewCardInfoDto testCard;
 

@@ -45,7 +45,7 @@ public class CardInfo {
      * The connection is lazy-loaded, and cascading operations (like persist, merge)
      * are applied to the associated User.
      */
-    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.ALL)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 

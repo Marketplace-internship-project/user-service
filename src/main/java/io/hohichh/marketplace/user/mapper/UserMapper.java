@@ -58,9 +58,8 @@ public interface UserMapper {
      * into a single {@link UserWithCardsDto}.
      *
      * @param user  The user entity.
-     * @param cards The list of associated card entities.
      * @return The resulting UserWithCardsDto.
      */
     @Mapping(target = "cards", source = "cards")
-    UserWithCardsDto toUserWithCardsDto(User user, List<CardInfo> cards);
+    UserWithCardsDto toUserWithCardsDto(User user);
 }

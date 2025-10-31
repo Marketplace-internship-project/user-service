@@ -1,8 +1,6 @@
 package io.hohichh.marketplace.user.integration;
 
 import io.hohichh.marketplace.user.dto.*;
-import io.hohichh.marketplace.user.repository.CardRepository;
-import io.hohichh.marketplace.user.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
@@ -10,7 +8,6 @@ import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -26,12 +23,6 @@ import static org.mockito.Mockito.when;
 
 
 class UserCachingApplicationTest extends AbstractApplicationTest {
-
-    @MockitoSpyBean
-    private UserRepository userRepositorySpy;
-
-    @MockitoSpyBean
-    private CardRepository cardRepositorySpy;
 
     private NewUserDto testUserDto;
     private NewCardInfoDto testCardDto;
@@ -129,13 +120,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
     @Test
     void getUserById_shouldCacheUserOnFirstCall() {
         UserDto createdUser = createTestUser(testUserDto);
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         getUserById(createdUser.id());
         getUserById(createdUser.id());
         getUserById(createdUser.id());
 
-        verify(userRepositorySpy, times(1)).findById(createdUser.id());
+        verify(userRepository, times(1)).findById(createdUser.id());
     }
 
     @Test
@@ -143,13 +134,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         UserDto createdUser = createTestUser(testUserDto);
 
         getUserById(createdUser.id());
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         updateTestUser(createdUser.id(), new NewUserDto("New", "Name", null, "new.email@gmail.com"));
 
         getUserById(createdUser.id());
 
-        verify(userRepositorySpy, times(2)).findById(createdUser.id());
+        verify(userRepository, times(2)).findById(createdUser.id());
     }
 
     @Test
@@ -157,7 +148,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         UserDto createdUser = createTestUser(testUserDto);
 
         getUserById(createdUser.id());
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         deleteTestUser(createdUser.id());
 
@@ -166,7 +157,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
                 Object.class
         );
 
-        verify(userRepositorySpy, times(1)).findById(createdUser.id());
+        verify(userRepository, times(1)).findById(createdUser.id());
     }
 
 
@@ -178,7 +169,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         getBirthdayUsers();
         getBirthdayUsers();
 
-        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+        verify(userRepository, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
     }
 
     @Test
@@ -186,13 +177,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         setMockToday(MOCKED_BIRTHDAY);
 
         getBirthdayUsers();
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         createTestUser(testUserDto);
 
         getBirthdayUsers();
 
-        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+        verify(userRepository, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
     }
 
     @Test
@@ -201,13 +192,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         UserDto createdUser = createTestUser(testUserDto);
 
         getBirthdayUsers();
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         updateTestUser(createdUser.id(), new NewUserDto("New", "Name", null, "new.email@gmail.com"));
 
         getBirthdayUsers();
 
-        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+        verify(userRepository, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
     }
 
     @Test
@@ -216,13 +207,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         UserDto createdUser = createTestUser(testUserDto);
 
         getBirthdayUsers();
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         deleteTestUser(createdUser.id());
 
         getBirthdayUsers();
 
-        verify(userRepositorySpy, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
+        verify(userRepository, times(1)).findUsersWithBirthDayToday(MOCKED_BIRTHDAY);
     }
 
     @Test
@@ -230,13 +221,13 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         UserDto createdUser = createTestUser(testUserDto);
 
         getUserById(createdUser.id());
-        clearInvocations(userRepositorySpy);
+        clearInvocations(userRepository);
 
         createTestCard(createdUser.id(), testCardDto);
 
         getUserById(createdUser.id());
 
-        verify(userRepositorySpy, times(2)).findById(createdUser.id());
+        verify(userRepository, times(2)).findById(createdUser.id());
     }
 
     @Test
@@ -247,6 +238,6 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
         getExpiredCards();
         getExpiredCards();
 
-        verify(cardRepositorySpy, times(1)).findExpiredCardsNative(MOCKED_TODAY);
+        verify(cardRepository, times(1)).findExpiredCardsNative(MOCKED_TODAY);
     }
 }

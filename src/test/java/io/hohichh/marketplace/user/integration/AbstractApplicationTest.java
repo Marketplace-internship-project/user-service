@@ -61,9 +61,11 @@ public abstract class AbstractApplicationTest {
     protected CacheManager cacheManager;
 
     @Autowired
+    @MockitoSpyBean
     protected UserRepository userRepository;
 
     @Autowired
+    @MockitoSpyBean
     protected CardRepository cardRepository;
 
     @Autowired

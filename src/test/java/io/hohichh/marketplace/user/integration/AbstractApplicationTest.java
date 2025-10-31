@@ -38,17 +38,17 @@ import static org.mockito.Mockito.mock;
 @Import(TestClockConfiguration.class)
 public abstract class AbstractApplicationTest {
     @Container
-    public PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+    public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
             DockerImageName.parse("postgres:16-alpine")
     );
 
     @Container
-    public GenericContainer<?> redis = new GenericContainer<>(
+    public static GenericContainer<?> redis = new GenericContainer<>(
             DockerImageName.parse("redis:7-alpine")
     ).withExposedPorts(6379);
 
     @DynamicPropertySource
-     void setDatasourceProperties(DynamicPropertyRegistry registry) {
+     static void setDatasourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);

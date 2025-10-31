@@ -1,13 +1,18 @@
 package io.hohichh.marketplace.user.integration;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.repository.CardRepository;
+import io.hohichh.marketplace.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -23,6 +28,13 @@ import static org.mockito.Mockito.when;
 
 
 class UserCachingApplicationTest extends AbstractApplicationTest {
+    @Autowired
+    @MockitoSpyBean
+    private UserRepository userRepository;
+
+    @Autowired
+    @MockitoSpyBean
+    private CardRepository cardRepository;
 
     private NewUserDto testUserDto;
     private NewCardInfoDto testCardDto;
@@ -43,6 +55,18 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
                 "Cache Tester",
                 LocalDate.of(2030, 1, 1) // Точно не просроченная
         );
+    }
+
+    @AfterEach
+    void tearDown() {
+        //clear redis cache
+        cacheManager.getCacheNames().stream()
+                .map(cacheManager::getCache)
+                .filter(java.util.Objects::nonNull)
+                .forEach(org.springframework.cache.Cache::clear);
+
+        //clear postgres database
+        userRepository.deleteAll();
     }
 
 

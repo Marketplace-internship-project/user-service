@@ -5,11 +5,16 @@ import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.dto.UserWithCardsDto;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
+import io.hohichh.marketplace.user.repository.CardRepository;
+import io.hohichh.marketplace.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -24,6 +29,8 @@ import static org.mockito.Mockito.when;
 
 
 class UserApplicationTests extends AbstractApplicationTest {
+	@Autowired
+	private UserRepository userRepository;
 
 	private NewUserDto testUser;
 
@@ -35,6 +42,18 @@ class UserApplicationTests extends AbstractApplicationTest {
 				LocalDate.of(1999, 1,1),
 				"AdamHuman@Gmail.com"
 		);
+	}
+
+	@AfterEach
+	void tearDown() {
+		//clear redis cache
+		cacheManager.getCacheNames().stream()
+				.map(cacheManager::getCache)
+				.filter(java.util.Objects::nonNull)
+				.forEach(org.springframework.cache.Cache::clear);
+
+		//clear postgres database
+		userRepository.deleteAll();
 	}
 
 

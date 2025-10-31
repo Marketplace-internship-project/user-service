@@ -38,17 +38,17 @@ import static org.mockito.Mockito.mock;
 @Import(TestClockConfiguration.class)
 public abstract class AbstractApplicationTest {
     @Container
-    public static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
+    public PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>(
             DockerImageName.parse("postgres:16-alpine")
     );
 
     @Container
-    public static GenericContainer<?> redis = new GenericContainer<>(
+    public GenericContainer<?> redis = new GenericContainer<>(
             DockerImageName.parse("redis:7-alpine")
     ).withExposedPorts(6379);
 
     @DynamicPropertySource
-    static void setDatasourceProperties(DynamicPropertyRegistry registry) {
+     void setDatasourceProperties(DynamicPropertyRegistry registry) {
         registry.add("spring.datasource.url", postgres::getJdbcUrl);
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
@@ -61,29 +61,7 @@ public abstract class AbstractApplicationTest {
     protected CacheManager cacheManager;
 
     @Autowired
-    @MockitoSpyBean
-    protected UserRepository userRepository;
-
-    @Autowired
-    @MockitoSpyBean
-    protected CardRepository cardRepository;
-
-    @Autowired
     protected TestRestTemplate restTemplate;
-
-    @AfterEach
-    void tearDown() {
-       //clear redis cache
-        cacheManager.getCacheNames().stream()
-                .map(cacheManager::getCache)
-                .filter(java.util.Objects::nonNull)
-                .forEach(org.springframework.cache.Cache::clear);
-
-        //clear postgres database
-        userRepository.deleteAll();
-    }
-
-
 
     @Autowired
     protected Clock clock;

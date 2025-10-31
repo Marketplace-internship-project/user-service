@@ -5,8 +5,12 @@ import io.hohichh.marketplace.user.dto.NewCardInfoDto;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
+import io.hohichh.marketplace.user.repository.CardRepository;
+import io.hohichh.marketplace.user.repository.UserRepository;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
@@ -23,6 +27,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 class UserCardApplicationTests extends AbstractApplicationTest {
+
+    @Autowired
+    private UserRepository userRepository;
 
     private NewUserDto testUser;
     private NewCardInfoDto testCard;
@@ -41,6 +48,18 @@ class UserCardApplicationTests extends AbstractApplicationTest {
                 "ADAM FIRSTHUMAN",
                 LocalDate.of(2026, 1,1 )
         );
+    }
+
+    @AfterEach
+    void tearDown() {
+        //clear redis cache
+        cacheManager.getCacheNames().stream()
+                .map(cacheManager::getCache)
+                .filter(java.util.Objects::nonNull)
+                .forEach(org.springframework.cache.Cache::clear);
+
+        //clear postgres database
+        userRepository.deleteAll();
     }
 
 

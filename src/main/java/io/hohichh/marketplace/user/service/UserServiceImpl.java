@@ -169,7 +169,7 @@ public class UserServiceImpl implements UserService {
         List<CardInfo> cards = cardRepository.findByUserId(id);
 
         logger.info("User with id: {} fetched successfully", id);
-        return userMapper.toUserWithCardsDto(user, cards);
+        return userMapper.toUserWithCardsDto(user);
     }
 
     /**
@@ -191,7 +191,7 @@ public class UserServiceImpl implements UserService {
 
         logger.info("User with id: {} fetched successfully by email", user.getId());
         return Optional.of(
-                userMapper.toUserWithCardsDto(user, cards));
+                userMapper.toUserWithCardsDto(user));
     }
 
     /**
@@ -277,6 +277,7 @@ public class UserServiceImpl implements UserService {
 
         CardInfo cardInfoEntity = cardInfoMapper.toCardInfo(newCard);
         cardInfoEntity.setUser(user);
+        user.getCards().add(cardInfoEntity);
 
         CardInfo savedCard = cardRepository.save(cardInfoEntity);
 

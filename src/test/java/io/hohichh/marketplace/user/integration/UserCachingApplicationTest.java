@@ -31,6 +31,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
     @MockitoSpyBean
     private UserRepository userRepository;
 
+
     @MockitoSpyBean
     private CardRepository cardRepository;
 

@@ -60,6 +60,7 @@ public abstract class AbstractApplicationTest {
     @Autowired
     protected CacheManager cacheManager;
 
+
     @Autowired
     protected TestRestTemplate restTemplate;
 

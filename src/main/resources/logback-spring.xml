@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <property name="LOG_PATH" value="log"/>
+    <property name="LOG_PATH" value="log" />
 
     <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>
@@ -48,46 +48,59 @@
         </rollingPolicy>
     </appender>
 
-
     <springProfile name="dev">
-        <logger name="io.hohichh.marketplace" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
-            <appender-ref ref="FILE-CONTROLLERS"/>
-            <appender-ref ref="FILE-SERVICES"/>
-            <appender-ref ref="FILE-REPOSITORIES"/>
+        <logger name="io.hohichh.marketplace.user.controller" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-CONTROLLERS" />
         </logger>
-      
+        <logger name="io.hohichh.marketplace.user.service" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-SERVICES" />
+        </logger>
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-REPOSITORIES" />
+        </logger>
+        <logger name="org.hibernate.type.descriptor.sql" level="TRACE" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-REPOSITORIES" />
+        </logger>
+
         <root level="INFO">
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="CONSOLE" />
         </root>
     </springProfile>
 
-    <springProfile name="prod">
-        <logger name="io.hohichh.marketplace.controller" level="INFO" additivity="false">
-            <appender-ref ref="FILE-CONTROLLERS"/>
-            <appender-ref ref="CONSOLE"/>
+    <springProfile name="prod, docker">
+        <logger name="io.hohichh.marketplace.user.controller" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-CONTROLLERS" />
         </logger>
-        <logger name="io.hohichh.marketplace.service" level="INFO" additivity="false">
-            <appender-ref ref="FILE-SERVICES"/>
-            <appender-ref ref="CONSOLE"/>
+        <logger name="io.hohichh.marketplace.user.service" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-SERVICES" />
         </logger>
-        <logger name="io.hohichh.marketplace.repository" level="WARN" additivity="false">
-            <appender-ref ref="FILE-REPOSITORIES"/>
-            <appender-ref ref="CONSOLE"/>
+        <logger name="org.hibernate.SQL" level="ERROR" additivity="false">
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-REPOSITORIES" />
         </logger>
-        
+
         <root level="WARN">
-            <appender-ref ref="FILE-SERVICES"/> 
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="CONSOLE" />
+            <appender-ref ref="FILE-SERVICES" />
         </root>
     </springProfile>
 
     <springProfile name="test">
-        <logger name="io.hohichh.marketplace" level="DEBUG" additivity="false">
-            <appender-ref ref="CONSOLE"/>
+        <logger name="io.hohichh.marketplace.user" level="INFO" additivity="false">
+            <appender-ref ref="CONSOLE" />
         </logger>
+        <logger name="org.hibernate.SQL" level="WARN" additivity="false">
+            <appender-ref ref="CONSOLE" />
+        </logger>
+
         <root level="WARN">
-            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="CONSOLE" />
         </root>
     </springProfile>
 

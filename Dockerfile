@@ -15,10 +15,14 @@ FROM eclipse-temurin:22-jre-jammy
 WORKDIR /app
 
 RUN useradd -ms /bin/bash appuser
-USER appuser
 
 COPY --from=build /app/target/*.jar app.jar
 
+RUN mkdir log
+RUN chown -R appuser:appuser /app
+
+USER appuser
+
 EXPOSE 8080
 #!!профиль
-ENTRYPOINT ["java", "-Dspring.profiles.active=dev", "-jar", "app.jar"]
+ENTRYPOINT ["java", "-Dspring.profiles.active=docker", "-jar", "app.jar"]

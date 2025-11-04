@@ -1,6 +1,8 @@
 package io.hohichh.marketplace.user.dto;
 
 import jakarta.validation.constraints.*;
+
+import java.io.Serializable;
 import java.time.LocalDate;
 
 public record NewUserDto(
@@ -17,5 +19,5 @@ public record NewUserDto(
         @NotBlank
         @Email
         @Size(max = 255)
-        String email) {
+        String email) implements Serializable {
 }

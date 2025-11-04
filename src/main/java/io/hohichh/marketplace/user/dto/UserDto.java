@@ -1,5 +1,6 @@
 package io.hohichh.marketplace.user.dto;
 
+import java.io.Serializable;
 import java.time.LocalDate;
 import java.util.UUID;
 
@@ -17,5 +18,5 @@ public record UserDto(
         @Size(max = 255)
         String surname,
         @Past LocalDate birthDate,
-        @Email @NotBlank @Size(max = 255) String email) {
+        @Email @NotBlank @Size(max = 255) String email) implements Serializable {
 }

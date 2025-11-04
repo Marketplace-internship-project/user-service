@@ -14,7 +14,11 @@ import io.hohichh.marketplace.user.model.CardInfo;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
@@ -37,6 +41,8 @@ public class UserServiceImpl implements UserService {
     private final UserMapper userMapper;
     private final CardInfoMapper cardInfoMapper;
 
+    private final static Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+
     /**
      * Constructs a new UserServiceImpl with the required repositories and mappers.
      *
@@ -54,6 +60,8 @@ public class UserServiceImpl implements UserService {
         this.cardRepository = cardRepository;
         this.userMapper = userMapper;
         this.cardInfoMapper = cardInfoMapper;
+
+        logger.trace("UserServiceImpl initialized with UserRepository and CardRepository");
     }
 
     /**
@@ -64,14 +72,20 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "usersWithBirthdayToday", allEntries = true)
     public UserDto createUser(NewUserDto user) {
+        logger.debug("Attempting to create user with email: {}", user.email());
+
         String email = user.email();
         if (userRepository.findByEmail(email).isPresent()) {
+            logger.error("User creation failed: email {} already exists", email);
             throw new ResourceCreationConflictException("User with email " + email + " already exists.");
         }
+
         User savedUser = userRepository.save(
                 userMapper.toUser(user));
 
+        logger.info("User with id: {} saved successfully", savedUser.getId());
         return userMapper.toUserDto(savedUser);
     }
 
@@ -83,10 +97,16 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public void deleteUser(UUID id) {
+        logger.debug("Attempting to delete user with id: {}", id);
+
         if (!userRepository.existsById(id)) {
+            logger.error("User deletion failed: user with id {} not found", id);
             throw new ResourceNotFoundException("User with id " + id + " not found.");
         }
+
+        logger.info("User with id: {} deleted successfully", id);
         userRepository.deleteById(id);
     }
 
@@ -99,13 +119,19 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
+        logger.debug("Attempting to update user with id: {}", id);
         User existingUser = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
+                .orElseThrow(() -> {
+                    logger.error("User update failed: user with id {} not found", id);
+                    return new ResourceNotFoundException("User with id " + id + " not found.");
+                });
 
         String newEmail = userToUpd.email();
         Optional<User> userWithSameEmail = userRepository.findByEmail(newEmail);
         if (userWithSameEmail.isPresent() && !userWithSameEmail.get().getId().equals(id)) {
+            logger.error("User update failed: email {} already in use by another user", newEmail);
             throw new ResourceCreationConflictException("Email " + newEmail + " is already in use by another user.");
         }
 
@@ -113,6 +139,7 @@ public class UserServiceImpl implements UserService {
 
         User updatedUser = userRepository.save(existingUser);
 
+        logger.info("User with id: {} updated successfully", id);
         return userMapper.toUserDto(updatedUser);
     }
 
@@ -124,12 +151,18 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "users", key = "#id")
     public UserWithCardsDto getUserById(UUID id) {
+        logger.debug("Fetching user with id: {}", id);
         User user = userRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("User with id " + id + " not found."));
+                .orElseThrow(() -> {
+                    logger.error("User fetch failed: user with id {} not found", id);
+                    return new ResourceNotFoundException("User with id " + id + " not found.");
+                });
 
         List<CardInfo> cards = cardRepository.findByUserId(id);
 
+        logger.info("User with id: {} fetched successfully", id);
         return userMapper.toUserWithCardsDto(user, cards);
     }
 
@@ -140,13 +173,17 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Optional<UserWithCardsDto> getUserByEmail(String email) {
+        logger.debug("Fetching user with email: {}", email);
+
         User user = userRepository.findByEmail(email)
                 .orElse(null);
         if (user == null) {
+            logger.debug("User with email: {} not found", email);
             return Optional.empty();
         }
         List<CardInfo> cards = cardRepository.findByUserId(user.getId());
 
+        logger.info("User with id: {} fetched successfully by email", user.getId());
         return Optional.of(
                 userMapper.toUserWithCardsDto(user, cards));
     }
@@ -158,8 +195,16 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
+        if (pageable.isPaged()) {
+            logger.debug("Fetching all users with pagination: page number {}, page size {}",
+                    pageable.getPageNumber(), pageable.getPageSize());
+        } else {
+            logger.debug("Fetching all users (unpaged)");
+        }
+
         Page<User> userPage = userRepository.findAll(pageable);
 
+        logger.info("Fetched {} users", userPage.getNumberOfElements());
         return userPage.map(userMapper::toUserDto);
     }
 
@@ -169,9 +214,13 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "usersWithBirthdayToday")
     public List<UserDto> getUsersWithBirthdayToday() {
+        logger.debug("Fetching users with birthday today");
+
         List<User> users = userRepository.findUsersWithBirthDayToday();
 
+        logger.info("Fetched {} users with birthday today", users.size());
         return users.stream().map(userMapper::toUserDto).toList();
     }
 
@@ -182,8 +231,16 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable) {
+        if (pageable.isPaged()) {
+            logger.debug("Searching users with term: '{}' with pagination: page number {}, page size {}",
+                    searchTerm, pageable.getPageNumber(), pageable.getPageSize());
+        } else {
+            logger.debug("Fetching all users with search term: '{}' (unpaged)", searchTerm);
+        }
+
         Page<User> userPage = userRepository.findBySearchTerm(searchTerm, pageable);
 
+        logger.info("Found {} users by search term successfully", userPage.getNumberOfElements());
         return userPage.map(userMapper::toUserDto);
     }
 
@@ -197,13 +254,18 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional
+    @CacheEvict(value = "users", key = "#userId")
     public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) {
+        logger.debug("Attempting to create card for user with id: {}", userId);
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User with id " + userId + " not found."));
+                .orElseThrow(() -> {
+                    logger.error("Card creation failed: user with id {} not found", userId);
+                    return new ResourceNotFoundException("User with id " + userId + " not found.");
+                });
 
         String number = newCard.cardNumber();
-        Optional<CardInfo> existingCard = cardRepository.findByNumber(number);
-        if (existingCard.isPresent() && !existingCard.get().getUser().getId().equals(userId)) {
+        if (cardRepository.findByNumber(number).isPresent()) {
+            logger.error("Card creation failed: card with number {} already exists", number);
             throw new ResourceCreationConflictException("Card with number " + number + " already exists.");
         }
 
@@ -212,6 +274,7 @@ public class UserServiceImpl implements UserService {
 
         CardInfo savedCard = cardRepository.save(cardInfoEntity);
 
+        logger.info("Card with id: {} created successfully for user with id: {}", savedCard.getId(), userId);
         return cardInfoMapper.toCardInfoDto(savedCard);
     }
 
@@ -224,9 +287,14 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional
     public void deleteCard(UUID cardId) {
+        logger.debug("Attempting to delete card with id: {}", cardId);
+
         if (!cardRepository.existsById(cardId)) {
+            logger.error("Card deletion failed: card with id {} not found", cardId);
             throw new ResourceNotFoundException("Card with id " + cardId + " not found.");
         }
+
+        logger.debug("Card with id: {} deleted successfully", cardId);
         cardRepository.deleteById(cardId);
     }
 
@@ -238,9 +306,15 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public CardInfoDto getCardById(UUID cardId) {
-        CardInfo cardInfo = cardRepository.findById(cardId)
-                .orElseThrow(() -> new ResourceNotFoundException("Card with id " + cardId + " not found."));
+        logger.debug("Fetching card with id: {}", cardId);
 
+        CardInfo cardInfo = cardRepository.findById(cardId)
+                .orElseThrow(() -> {
+                    logger.error("Card fetch failed: card with id {} not found", cardId);
+                    return new ResourceNotFoundException("Card with id " + cardId + " not found.");
+                });
+
+        logger.info("Card with id: {} fetched successfully", cardId);
         return cardInfoMapper.toCardInfoDto(cardInfo);
     }
 
@@ -250,12 +324,17 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public Optional<CardInfoDto> getCardByNumber(String cardNumber) {
+        logger.debug("Fetching card with number: {}", cardNumber);
+
         Optional<CardInfo> cardInfoOpt = cardRepository.findByNumber(cardNumber);
         if (cardInfoOpt.isEmpty()) {
+            logger.debug("Card with number: {} not found", cardNumber);
             return Optional.empty();
         }
 
         CardInfoDto cardInfoDto = cardInfoMapper.toCardInfoDto(cardInfoOpt.get());
+
+        logger.info("Card with id: {} fetched successfully by number", cardInfoDto.id());
         return Optional.of(cardInfoDto);
     }
 
@@ -267,7 +346,11 @@ public class UserServiceImpl implements UserService {
     @Override
     @Transactional(readOnly = true)
     public List<CardInfoDto> getCardsByUserId(UUID userId) {
+        logger.debug("Fetching cards for user with id: {}", userId);
+
         List<CardInfo> cards = cardRepository.findByUserId(userId);
+
+        logger.info("Fetched {} cards for user with id: {}", cards.size(), userId);
         return cardInfoMapper.toCardInfoDtoList(cards);
     }
 
@@ -278,9 +361,13 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @Cacheable(value = "expiredCards")
     public List<CardInfoDto> getExpiredCards() {
+        logger.debug("Fetching expired cards");
+
         List<CardInfo> expiredCards = cardRepository.findExpiredCardsNative();
 
+        logger.info("Fetched {} expired cards", expiredCards.size());
         return cardInfoMapper.toCardInfoDtoList(expiredCards);
     }
 }

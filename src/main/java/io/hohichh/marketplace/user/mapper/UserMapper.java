@@ -32,6 +32,7 @@ public interface UserMapper {
      * @param newUserDto The DTO containing new user data.
      * @return The corresponding User entity.
      */
+    @Mapping(target = "cards", ignore = true)
     User toUser(NewUserDto newUserDto);
 
     /**
@@ -51,6 +52,7 @@ public interface UserMapper {
      * @param user    The existing User entity (target) to update.
      */
     @Mapping(target = "id", ignore = true)
+    @Mapping(target = "cards", ignore = true)
     void updateUserFromDto(NewUserDto userDto, @MappingTarget User user);
 
     /**
@@ -58,9 +60,8 @@ public interface UserMapper {
      * into a single {@link UserWithCardsDto}.
      *
      * @param user  The user entity.
-     * @param cards The list of associated card entities.
      * @return The resulting UserWithCardsDto.
      */
     @Mapping(target = "cards", source = "cards")
-    UserWithCardsDto toUserWithCardsDto(User user, List<CardInfo> cards);
+    UserWithCardsDto toUserWithCardsDto(User user);
 }

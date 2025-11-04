@@ -52,7 +52,7 @@ public interface CardRepository extends JpaRepository<CardInfo, UUID> {
      */
     @Query(value = "SELECT id, user_id, \"number\", holder, expiration_date " +
             "FROM card_info " +
-            "WHERE expiration_date < :date",
+            "WHERE expiration_date < CAST(:date AS date)",
             nativeQuery = true)
     List<CardInfo> findExpiredCardsNative(@Param("date") LocalDate date);
 }

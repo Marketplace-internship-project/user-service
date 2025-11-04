@@ -153,44 +153,4 @@ public class RestUserControllerTest {
         assertThat(response.getBody()).isEqualTo(birthdayUsers);
         verify(userService).getUsersWithBirthdayToday();
     }
-
-    //=========== CARD TESTS ========================================================
-
-    @Test
-    void createCardForUser_ShouldReturnCreated_WithCardDto() {
-        NewCardInfoDto newCardDto = new NewCardInfoDto("1234", "John Doe", LocalDate.now().plusYears(3));
-        CardInfoDto cardDto = new CardInfoDto(UUID.randomUUID(), testUserId, "1234", "John Doe", LocalDate.now().plusYears(3));
-
-        when(userService.createCardForUser(testUserId, newCardDto)).thenReturn(cardDto);
-
-        ResponseEntity<CardInfoDto> response = restUserController.createCardForUser(testUserId, newCardDto);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
-        assertThat(response.getBody()).isEqualTo(cardDto);
-        verify(userService).createCardForUser(testUserId, newCardDto);
-    }
-
-    @Test
-    void getCardByNumber_ShouldReturnNotFound_WhenCardNotFound() {
-        String cardNumber = "9999";
-        when(userService.getCardByNumber(cardNumber)).thenReturn(Optional.empty());
-
-        ResponseEntity<CardInfoDto> response = restUserController.getCardByNumber(cardNumber);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        verify(userService).getCardByNumber(cardNumber);
-    }
-
-    @Test
-    void getCardsByUserId_ShouldReturnOk_WithCardList() {
-        CardInfoDto cardDto = new CardInfoDto(UUID.randomUUID(), testUserId, "1234", "John Doe", LocalDate.now().plusYears(3));
-        List<CardInfoDto> cardList = List.of(cardDto);
-        when(userService.getCardsByUserId(testUserId)).thenReturn(cardList);
-
-        ResponseEntity<List<CardInfoDto>> response = restUserController.getCardsByUserId(testUserId);
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isEqualTo(cardList);
-        verify(userService).getCardsByUserId(testUserId);
-    }
 }

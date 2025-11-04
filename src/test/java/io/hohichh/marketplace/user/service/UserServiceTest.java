@@ -220,7 +220,7 @@ class UserServiceTest {
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(cardRepository.findByUserId(userId)).thenReturn(cardList);
-        when(userMapper.toUserWithCardsDto(userEntity, cardList)).thenReturn(expectedDto);
+        when(userMapper.toUserWithCardsDto(userEntity)).thenReturn(expectedDto);
 
 
         UserWithCardsDto result = userService.getUserById(userId);
@@ -229,7 +229,7 @@ class UserServiceTest {
         assertEquals(expectedDto.id(), result.id());
         verify(userRepository).findById(userId);
         verify(cardRepository).findByUserId(userId);
-        verify(userMapper).toUserWithCardsDto(userEntity, cardList);
+        verify(userMapper).toUserWithCardsDto(userEntity);
     }
 
     @Test
@@ -245,7 +245,7 @@ class UserServiceTest {
 
         verify(userRepository).findById(userId);
         verify(cardRepository, never()).findByUserId(any());
-        verify(userMapper, never()).toUserWithCardsDto(any(), any());
+        verify(userMapper, never()).toUserWithCardsDto(any());
     }
 
     @Test
@@ -260,7 +260,7 @@ class UserServiceTest {
         when(userEntity.getId()).thenReturn(userId);
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(userEntity));
         when(cardRepository.findByUserId(userId)).thenReturn(cardList);
-        when(userMapper.toUserWithCardsDto(userEntity, cardList)).thenReturn(expectedDto);
+        when(userMapper.toUserWithCardsDto(userEntity)).thenReturn(expectedDto);
 
         Optional<UserWithCardsDto> result = userService.getUserByEmail(email);
 
@@ -274,7 +274,7 @@ class UserServiceTest {
 
         verify(userRepository).findByEmail(email);
         verify(cardRepository).findByUserId(userId);
-        verify(userMapper).toUserWithCardsDto(userEntity, cardList);
+        verify(userMapper).toUserWithCardsDto(userEntity);
     }
 
     @Test
@@ -289,7 +289,7 @@ class UserServiceTest {
 
         verify(userRepository).findByEmail(email);
         verify(cardRepository, never()).findByUserId(any());
-        verify(userMapper, never()).toUserWithCardsDto(any(), any());
+        verify(userMapper, never()).toUserWithCardsDto(any());
     }
 
     //====================================================================

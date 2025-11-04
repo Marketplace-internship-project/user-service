@@ -5,17 +5,13 @@ import io.hohichh.marketplace.user.dto.NewCardInfoDto;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
-import io.hohichh.marketplace.user.repository.CardRepository;
-import io.hohichh.marketplace.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -285,7 +281,7 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         );
         createTestCard(userId, activeCardDto);
 
-        String url = "/v1/cards/expired";
+        String url = "/v1/cards?expiration-date=today";
         ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
         ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
                 url, HttpMethod.GET, null, responseType

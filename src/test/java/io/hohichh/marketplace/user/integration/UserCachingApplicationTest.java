@@ -105,7 +105,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
     private void getBirthdayUsers() {
         ParameterizedTypeReference<List<UserDto>> responseType = new ParameterizedTypeReference<>() {};
         restTemplate.exchange(
-                "/v1/users/birthdays",
+                "/v1/users?birth-date=today",
                 HttpMethod.GET,
                 null,
                 responseType
@@ -126,7 +126,7 @@ class UserCachingApplicationTest extends AbstractApplicationTest {
     private void getExpiredCards() {
         ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
         restTemplate.exchange(
-                "/v1/cards/expired",
+                "/v1/cards?expiration-date=today",
                 HttpMethod.GET,
                 null,
                 responseType

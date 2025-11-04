@@ -395,7 +395,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				new ParameterizedTypeReference<>() {};
 
 		ResponseEntity<List<UserDto>> response = restTemplate.exchange(
-				"/v1/users/birthdays", HttpMethod.GET, null, responseType
+				"/v1/users?birth-date=today", HttpMethod.GET, null, responseType
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
@@ -420,7 +420,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				new ParameterizedTypeReference<>() {};
 
 		ResponseEntity<List<UserDto>> response = restTemplate.exchange(
-				"/v1/users/birthdays", HttpMethod.GET, null, responseType
+				"/v1/users?birth-date=today", HttpMethod.GET, null, responseType
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);

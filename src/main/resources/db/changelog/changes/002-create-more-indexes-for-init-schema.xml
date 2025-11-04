@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<databaseChangeLog
+        xmlns="http://www.liquibase.org/xml/ns/dbchangelog"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://www.liquibase.org/xml/ns/dbchangelog
+ http://www.liquibase.org/xml/ns/dbchangelog/dbchangelog-4.6.xsd">
+
+    <!-- Indexes for `users` table -->
+    <changeSet id="004-create-users-name-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_users_name" tableName="users"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_users_name" tableName="users">
+            <column name="name"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="005-create-users-surname-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_users_surname" tableName="users"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_users_surname" tableName="users">
+            <column name="surname"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="006-create-users-birthdate-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_users_birth_date" tableName="users"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_users_birth_date" tableName="users">
+            <column name="birth_date"/>
+        </createIndex>
+    </changeSet>
+
+    <!-- Indexes for `card_info` table -->
+    <changeSet id="007-create-card-number-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_card_info_number" tableName="card_info"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_card_info_number" tableName="card_info">
+            <column name="number"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="008-create-card-userid-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_card_info_user_id" tableName="card_info"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_card_info_user_id" tableName="card_info">
+            <column name="user_id"/>
+        </createIndex>
+    </changeSet>
+
+    <changeSet id="009-create-card-expiration-index" author="auto-generated">
+        <preConditions onFail="MARK_RAN">
+            <not>
+                <indexExists indexName="idx_card_info_expiration_date" tableName="card_info"/>
+            </not>
+        </preConditions>
+        <createIndex indexName="idx_card_info_expiration_date" tableName="card_info">
+            <column name="expiration_date"/>
+        </createIndex>
+    </changeSet>
+</databaseChangeLog>

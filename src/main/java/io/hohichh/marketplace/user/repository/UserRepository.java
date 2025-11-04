@@ -10,7 +10,9 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -54,9 +56,9 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      * @return A {@link List} of {@link User} entities whose birthday is today.
      */
     @Query(value = "SELECT id, name, surname, birth_date, email FROM users u " +
-            "WHERE EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM CURRENT_DATE) " +
-            "AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM CURRENT_DATE)",
+            "WHERE EXTRACT(MONTH FROM u.birth_date) = EXTRACT(MONTH FROM :date) " +
+            "AND EXTRACT(DAY FROM u.birth_date) = EXTRACT(DAY FROM :date)",
             nativeQuery = true)
-    List<User> findUsersWithBirthDayToday();
+    List<User> findUsersWithBirthDayToday(@Param("date") LocalDate date);
 }
 

@@ -9,7 +9,9 @@ package io.hohichh.marketplace.user.repository;
 import io.hohichh.marketplace.user.model.CardInfo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
+import java.time.LocalDate;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -50,7 +52,7 @@ public interface CardRepository extends JpaRepository<CardInfo, UUID> {
      */
     @Query(value = "SELECT id, user_id, \"number\", holder, expiration_date " +
             "FROM card_info " +
-            "WHERE expiration_date < CURRENT_DATE",
+            "WHERE expiration_date < :date",
             nativeQuery = true)
-    List<CardInfo> findExpiredCardsNative();
+    List<CardInfo> findExpiredCardsNative(@Param("date") LocalDate date);
 }

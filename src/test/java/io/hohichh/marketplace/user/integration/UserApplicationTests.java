@@ -3,14 +3,19 @@ package io.hohichh.marketplace.user.integration;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.dto.UserWithCardsDto;
+import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
+import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.http.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
@@ -23,6 +28,12 @@ import java.util.UUID;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
+@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@ActiveProfiles("test")
+@Import({
+		TestClockConfiguration.class,
+		TestContainerConfiguration.class
+})
 @TestPropertySource(properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration")
 class UserApplicationTests extends AbstractApplicationTest {
 

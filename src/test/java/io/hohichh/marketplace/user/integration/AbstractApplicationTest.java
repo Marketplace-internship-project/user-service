@@ -23,12 +23,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.mock;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Import({
-        TestClockConfiguration.class,
-        TestContainerConfiguration.class
-})
+
 public abstract class AbstractApplicationTest {
     @Autowired
     protected CacheManager cacheManager;

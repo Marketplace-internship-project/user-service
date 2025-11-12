@@ -7,6 +7,7 @@ import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
 import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
 import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
+import io.hohichh.marketplace.user.integration.config.TestSecurityConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -30,13 +31,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.when;
 
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Import({
-        TestClockConfiguration.class,
-        TestContainerConfiguration.class
-})
-@TestPropertySource(properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration")
+
 class UserCardApplicationTests extends AbstractApplicationTest {
     private NewUserDto testUser;
     private NewCardInfoDto testCard;

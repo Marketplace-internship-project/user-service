@@ -3,6 +3,7 @@ package io.hohichh.marketplace.user.integration;
 import io.hohichh.marketplace.user.dto.*;
 import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
 import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
+import io.hohichh.marketplace.user.integration.config.TestSecurityConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -28,13 +29,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
-@ActiveProfiles("test")
-@Import({
-        TestClockConfiguration.class,
-        TestContainerConfiguration.class
-})
-@TestPropertySource(properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration")
+
 class UserCachingApplicationTest extends AbstractApplicationTest {
 
     private NewUserDto testUserDto;

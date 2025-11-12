@@ -91,7 +91,7 @@
         </root>
     </springProfile>
 
-    <springProfile name="test">
+    <springProfile name="test, default">
         <logger name="io.hohichh.marketplace.user" level="INFO" additivity="false">
             <appender-ref ref="CONSOLE" />
         </logger>

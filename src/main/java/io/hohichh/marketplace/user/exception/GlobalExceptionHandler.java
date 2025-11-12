@@ -8,6 +8,7 @@ package io.hohichh.marketplace.user.exception;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -35,6 +36,22 @@ public class GlobalExceptionHandler {
      * @param message The error message.
      */
     public record ErrorResponse(String message) {
+    }
+
+    /**
+     * Handles {@link AccessDeniedException}, which is thrown by Spring Security
+     * (e.g., @PreAuthorize) when an authenticated user does not have the
+     * necessary permissions.
+     * Returns an HTTP 403 (Forbidden) response.
+     *
+     * @param ex The caught {@link AccessDeniedException}.
+     * @return An {@link ErrorResponse} containing the error message.
+     */
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ErrorResponse handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        return new ErrorResponse("Access Denied: You do not have permission to perform this action.");
     }
 
 

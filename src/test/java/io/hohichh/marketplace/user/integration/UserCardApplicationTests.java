@@ -5,69 +5,44 @@ import io.hohichh.marketplace.user.dto.NewCardInfoDto;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
-import io.hohichh.marketplace.user.model.CardInfo;
-import io.hohichh.marketplace.user.model.User;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.AdditionalAnswers;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
+import static org.mockito.Mockito.when;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@TestPropertySource(properties = "spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration")
 class UserCardApplicationTests extends AbstractApplicationTest {
-    private NewUserDto testUserDto;
-    private NewCardInfoDto testCardDto;
-
-
-    private static final String KNOWN_USER_ID_STRING = "123e4567-e89b-12d3-a456-426614174000";
-    private static final UUID KNOWN_USER_ID = UUID.fromString(KNOWN_USER_ID_STRING);
-    private static final String KNOWN_CARD_ID_STRING = "123e4567-e89b-12d3-a456-426614174001";
-    private static final UUID KNOWN_CARD_ID = UUID.fromString(KNOWN_CARD_ID_STRING);
-
-
-    private User mockUser;
-    private CardInfo mockCard;
+    private NewUserDto testUser;
+    private NewCardInfoDto testCard;
 
     @BeforeEach
     void initTestUserData(){
-        testUserDto = new NewUserDto(
+        testUser = new NewUserDto(
                 "Adam",
                 "FirstHuman",
                 LocalDate.of(1999, 1,1),
                 "AdamHuman@Gmail.com"
         );
 
-        testCardDto = new NewCardInfoDto(
+        testCard = new NewCardInfoDto(
                 "1111-1111-1111-1111",
                 "ADAM FIRSTHUMAN",
                 LocalDate.of(2026, 1,1 )
         );
-
-        mockUser = mock(User.class);
-        when(mockUser.getId()).thenReturn(KNOWN_USER_ID);
-        when(mockUser.getEmail()).thenReturn("adam@test.com");
-
-        mockCard = mock(CardInfo.class);
-        when(mockCard.getId()).thenReturn(KNOWN_CARD_ID);
-        when(mockCard.getUser()).thenReturn(mockUser);
-        when(mockCard.getNumber()).thenReturn(testCardDto.cardNumber());
     }
 
     @AfterEach
@@ -83,80 +58,86 @@ class UserCardApplicationTests extends AbstractApplicationTest {
     }
 
 
-    @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
-    void createCardForUser_shouldReturnCreatedCard() {
-        doReturn(Optional.of(mockUser)).when(userRepository).findById(KNOWN_USER_ID);
-        doReturn(Optional.empty()).when(cardRepository).findByNumber(testCardDto.cardNumber());
-
-        doAnswer(invocation -> {
-            CardInfo cardToSave = invocation.getArgument(0);
-            return new CardInfoDto(KNOWN_CARD_ID, KNOWN_USER_ID, cardToSave.getNumber(), cardToSave.getHolder(), cardToSave.getExpiryDate());
-        }).when(cardRepository).save(any(CardInfo.class));
-
-
-        when(cardInfoMapper.toCardInfoDto(any(CardInfo.class))).thenAnswer(invocation -> {
-            CardInfo c = invocation.getArgument(0);
-            return new CardInfoDto(KNOWN_CARD_ID, c.getUser().getId(), c.getNumber(), c.getHolder(), c.getExpiryDate());
-        });
-        when(cardInfoMapper.toCardInfo(any(NewCardInfoDto.class))).thenAnswer(invocation -> {
-            NewCardInfoDto dto = invocation.getArgument(0);
-            CardInfo c = new CardInfo();
-            c.setNumber(dto.cardNumber());
-            c.setHolder(dto.cardHolderName());
-            c.setExpiryDate(dto.expirationDate());
-            return c;
-        });
-
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
-        ResponseEntity<CardInfoDto> response = restTemplate.postForEntity(
-                url,
-                testCardDto,
-                CardInfoDto.class
+    private UUID createTestUser(NewUserDto userToCreate) {
+        ResponseEntity<UserDto> response = restTemplate.postForEntity(
+                "/v1/users",
+                userToCreate,
+                UserDto.class
         );
-
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
         assertThat(response.getBody()).isNotNull();
-        assertThat(response.getBody().userId()).isEqualTo(KNOWN_USER_ID);
-        assertThat(response.getBody().cardNumber()).isEqualTo(testCardDto.cardNumber());
+        return response.getBody().id();
+    }
+
+
+    private CardInfoDto createTestCard(UUID userId, NewCardInfoDto cardToCreate) {
+        String url = "/v1/users/" + userId + "/cards";
+        ResponseEntity<CardInfoDto> response = restTemplate.postForEntity(
+                url,
+                cardToCreate,
+                CardInfoDto.class
+        );
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        assertThat(response.getBody()).isNotNull();
+        return response.getBody();
+    }
+
+
+    @Test
+    void createCardForUser_shouldReturnCreatedCard() {
+        UUID userId = createTestUser(testUser);
+        CardInfoDto createdCard = createTestCard(userId, testCard);
+
+        assertThat(createdCard.userId()).isEqualTo(userId);
+        assertThat(createdCard.cardNumber()).isEqualTo(testCard.cardNumber());
+        assertThat(createdCard.cardHolderName()).isEqualTo(testCard.cardHolderName());
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void createCardForUser_shouldReturnNotFound_whenUserDoesNotExist() {
-        doReturn(Optional.empty()).when(userRepository).findById(KNOWN_USER_ID);
+        UUID nonexistentUserId = UUID.randomUUID();
+        String url = "/v1/users/" + nonexistentUserId + "/cards";
 
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
         ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.postForEntity(
                 url,
-                testCardDto,
+                testCard,
                 GlobalExceptionHandler.ErrorResponse.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().message())
+                .isEqualTo("User with id " + nonexistentUserId + " not found.");
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void createCardForUser_shouldReturnConflict_whenCardNumberExists() {
-        doReturn(Optional.of(mockUser)).when(userRepository).findById(KNOWN_USER_ID);
-        doReturn(Optional.of(mockCard)).when(cardRepository).findByNumber(testCardDto.cardNumber());
+        UUID userId1 = createTestUser(testUser);
+        createTestCard(userId1, testCard);
 
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
+        NewUserDto testUser2 = new NewUserDto("Eve", "Second", null, "eve@gmail.com");
+        UUID userId2 = createTestUser(testUser2);
+
+        String url = "/v1/users/" + userId2 + "/cards";
+
         ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.postForEntity(
                 url,
-                testCardDto,
+                testCard,
                 GlobalExceptionHandler.ErrorResponse.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
+        assertThat(response.getBody().message())
+                .isEqualTo("Card with number " + testCard.cardNumber() + " already exists.");
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void createCardForUser_shouldReturnBadRequest_whenCardDataIsInvalid() {
-        NewCardInfoDto invalidCard = new NewCardInfoDto(null, "Holder", LocalDate.now());
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
+        UUID userId = createTestUser(testUser);
+
+        NewCardInfoDto invalidCard = new NewCardInfoDto(
+                null, "Holder", LocalDate.now()
+        );
+        String url = "/v1/users/" + userId + "/cards";
 
         ResponseEntity<Map> response = restTemplate.postForEntity(
                 url,
@@ -165,112 +146,74 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
+        assertThat(response.getBody().toString()).contains("cardNumber");
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void deleteCard_shouldReturnNoContent_whenCardExists() {
-        doReturn(Optional.of(mockCard)).when(cardRepository).findById(KNOWN_CARD_ID);
-        doReturn(true).when(cardRepository).existsById(KNOWN_CARD_ID);
+        UUID userId = createTestUser(testUser);
+        CardInfoDto createdCard = createTestCard(userId, testCard);
 
-        String url = "/v1/cards/" + KNOWN_CARD_ID;
+        String url = "/v1/cards/" + createdCard.id();
         ResponseEntity<Void> response = restTemplate.exchange(
                 url, HttpMethod.DELETE, null, Void.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
+
+        ResponseEntity<GlobalExceptionHandler.ErrorResponse> getResponse = restTemplate.getForEntity(
+                url, GlobalExceptionHandler.ErrorResponse.class
+        );
+        assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void deleteCard_shouldReturnNotFound_whenCardDoesNotExist() {
-        doReturn(Optional.empty()).when(cardRepository).findById(KNOWN_CARD_ID);
-        doReturn(false).when(cardRepository).existsById(KNOWN_CARD_ID);
+        UUID nonexistentCardId = UUID.randomUUID();
+        String url = "/v1/cards/" + nonexistentCardId;
 
-        String url = "/v1/cards/" + KNOWN_CARD_ID;
         ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.exchange(
                 url, HttpMethod.DELETE, null, GlobalExceptionHandler.ErrorResponse.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
+        assertThat(response.getBody().message())
+                .isEqualTo("Card with id " + nonexistentCardId + " not found.");
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
     void getCardById_shouldReturnCard_whenCardExists() {
-        doReturn(Optional.of(mockCard)).when(cardRepository).findById(KNOWN_CARD_ID);
-        when(cardInfoMapper.toCardInfoDto(any(CardInfo.class))).thenReturn(
-                new CardInfoDto(KNOWN_CARD_ID, KNOWN_USER_ID, testCardDto.cardNumber(), testCardDto.cardHolderName(), testCardDto.expirationDate())
-        );
+        UUID userId = createTestUser(testUser);
+        CardInfoDto createdCard = createTestCard(userId, testCard);
 
-        String url = "/v1/cards/" + KNOWN_CARD_ID;
+        String url = "/v1/cards/" + createdCard.id();
         ResponseEntity<CardInfoDto> response = restTemplate.getForEntity(
                 url, CardInfoDto.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().id()).isEqualTo(KNOWN_CARD_ID);
-        assertThat(response.getBody().userId()).isEqualTo(KNOWN_USER_ID);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().id()).isEqualTo(createdCard.id());
+        assertThat(response.getBody().cardNumber()).isEqualTo(testCard.cardNumber());
     }
 
     @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
-    void getCardsByUserId_shouldReturnCardList() {
-        doReturn(List.of(mockCard)).when(cardRepository).findByUserId(KNOWN_USER_ID);
-        when(cardInfoMapper.toCardInfoDtoList(any(List.class))).thenReturn(
-                List.of(new CardInfoDto(KNOWN_CARD_ID, KNOWN_USER_ID, testCardDto.cardNumber(), testCardDto.cardHolderName(), testCardDto.expirationDate()))
-        );
-
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
-        ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
-        ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
-                url, HttpMethod.GET, null, responseType
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).userId()).isEqualTo(KNOWN_USER_ID);
-    }
-
-    @Test
-    @WithMockUser(username = KNOWN_USER_ID_STRING, roles = "USER")
-    void getCardsByUserId_shouldReturnEmptyList_whenUserHasNoCards() {
-        doReturn(List.of()).when(cardRepository).findByUserId(KNOWN_USER_ID);
-
-        String url = "/v1/users/" + KNOWN_USER_ID + "/cards";
-        ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
-        ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
-                url, HttpMethod.GET, null, responseType
-        );
-
-        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).isNotNull().isEmpty();
-    }
-
-
-
-    @Test
-    @WithMockUser(roles = "ADMIN")
     void getCardByNumber_shouldReturnCard_whenCardExists() {
-        doReturn(Optional.of(mockCard)).when(cardRepository).findByNumber(testCardDto.cardNumber());
-        when(cardInfoMapper.toCardInfoDto(any(CardInfo.class))).thenReturn(
-                new CardInfoDto(KNOWN_CARD_ID, KNOWN_USER_ID, testCardDto.cardNumber(), testCardDto.cardHolderName(), testCardDto.expirationDate())
-        );
+        UUID userId = createTestUser(testUser);
+        CardInfoDto createdCard = createTestCard(userId, testCard);
 
         String url = "/v1/cards?number={number}";
         ResponseEntity<CardInfoDto> response = restTemplate.getForEntity(
-                url, CardInfoDto.class, testCardDto.cardNumber()
+                url, CardInfoDto.class, createdCard.cardNumber()
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody().id()).isEqualTo(KNOWN_CARD_ID);
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().id()).isEqualTo(createdCard.id());
     }
 
     @Test
-    @WithMockUser(roles = "ADMIN")
     void getCardByNumber_shouldReturnNotFound_whenCardDoesNotExist() {
-        doReturn(Optional.empty()).when(cardRepository).findByNumber(anyString());
-
         String url = "/v1/cards?number={number}";
         ResponseEntity<CardInfoDto> response = restTemplate.getForEntity(
                 url, CardInfoDto.class, "0000-0000-0000-0000"
@@ -280,22 +223,65 @@ class UserCardApplicationTests extends AbstractApplicationTest {
     }
 
     @Test
-    @WithMockUser(roles="ADMIN")
+    void getCardsByUserId_shouldReturnCardList() {
+        UUID userId = createTestUser(testUser);
+
+        CardInfoDto card1 = createTestCard(userId, testCard);
+
+        NewCardInfoDto testCard2 = new NewCardInfoDto(
+                "2222-2222-2222-2222",
+                "ADAM FIRSTHUMAN",
+                LocalDate.of(2027, 1, 1)
+        );
+        CardInfoDto card2 = createTestCard(userId, testCard2);
+
+        String url = "/v1/users/" + userId + "/cards";
+        ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
+        ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
+                url, HttpMethod.GET, null, responseType
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        List<CardInfoDto> cards = response.getBody();
+        assertThat(cards).isNotNull();
+        assertThat(cards).hasSize(2);
+        assertThat(cards)
+                .extracting(CardInfoDto::cardNumber)
+                .containsExactlyInAnyOrder(card1.cardNumber(), card2.cardNumber());
+    }
+
+    @Test
+    void getCardsByUserId_shouldReturnEmptyList_whenUserHasNoCards() {
+        UUID userId = createTestUser(testUser);
+
+        String url = "/v1/users/" + userId + "/cards";
+        ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
+        ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
+                url, HttpMethod.GET, null, responseType
+        );
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+        assertThat(response.getBody()).isNotNull().isEmpty();
+    }
+
+    @Test
     void getExpiredCards_shouldReturnOnlyExpiredCards() {
         final LocalDate MOCKED_TODAY = LocalDate.of(2025, 1, 1);
         Instant fixedInstant = MOCKED_TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant();
         when(clock.instant()).thenReturn(fixedInstant);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
-        CardInfo expiredCard = mock(CardInfo.class);
-        when(expiredCard.getId()).thenReturn(UUID.randomUUID());
-        when(expiredCard.getNumber()).thenReturn("1111-EXPIRED");
+        UUID userId = createTestUser(testUser);
 
-        doReturn(List.of(expiredCard)).when(cardRepository).findExpiredCardsNative(MOCKED_TODAY);
-
-        when(cardInfoMapper.toCardInfoDtoList(any(List.class))).thenReturn(
-                List.of(new CardInfoDto(expiredCard.getId(), UUID.randomUUID(), expiredCard.getNumber(), "Expired", MOCKED_TODAY.minusDays(1)))
+        NewCardInfoDto expiredCardDto = new NewCardInfoDto(
+                "1111-EXPIRED", "Expired Card", MOCKED_TODAY.minusDays(1)
         );
+        CardInfoDto expiredCard = createTestCard(userId, expiredCardDto);
+
+        NewCardInfoDto activeCardDto = new NewCardInfoDto(
+                "2222-ACTIVE", "Active Card", MOCKED_TODAY
+        );
+        createTestCard(userId, activeCardDto);
 
         String url = "/v1/cards?expiration-date=today";
         ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
@@ -304,7 +290,10 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertThat(response.getBody()).hasSize(1);
-        assertThat(response.getBody().get(0).cardNumber()).isEqualTo("1111-EXPIRED");
+        List<CardInfoDto> cards = response.getBody();
+        assertThat(cards).isNotNull();
+        assertThat(cards).hasSize(1);
+        assertThat(cards.get(0).id()).isEqualTo(expiredCard.id());
+        assertThat(cards.get(0).cardNumber()).isEqualTo("1111-EXPIRED");
     }
 }

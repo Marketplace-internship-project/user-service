@@ -31,7 +31,7 @@ public class SecurityConfig {
                 )
                 .authorizeHttpRequests(auth -> auth
                         //public methods
-                        .requestMatchers(HttpMethod.POST, "/api/v1/users").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/v1/users").permitAll()
                         .requestMatchers("/actuator/**").permitAll()
 
                         .anyRequest().authenticated()

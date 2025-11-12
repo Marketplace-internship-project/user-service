@@ -22,6 +22,8 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.cglib.core.Local;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.access.prepost.PostAuthorize;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -102,6 +104,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the user with the specified ID is not found.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
     @Transactional
     @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public void deleteUser(UUID id) {
@@ -124,6 +127,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceCreationConflictException if the new email is already in use by another user.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
     @Transactional
     @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
@@ -156,6 +160,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the user with the specified ID is not found.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
     @Transactional(readOnly = true)
     @Cacheable(value = "users", key = "#id")
     public UserWithCardsDto getUserById(UUID id) {
@@ -177,6 +182,7 @@ public class UserServiceImpl implements UserService {
      * Finds the user by email and, if found, fetches their associated cards.
      */
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public Optional<UserWithCardsDto> getUserByEmail(String email) {
         logger.debug("Fetching user with email: {}", email);
@@ -199,6 +205,7 @@ public class UserServiceImpl implements UserService {
      * Maps the resulting Page of User entities to a Page of UserDto.
      */
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public Page<UserDto> getAllUsers(Pageable pageable) {
         if (pageable.isPaged()) {
@@ -220,6 +227,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @Transactional(readOnly = true)
+    @PreAuthorize("hasRole('ADMIN')")
     @Cacheable(value = "usersWithBirthdayToday")
     public List<UserDto> getUsersWithBirthdayToday() {
         logger.debug("Fetching users with birthday today");
@@ -235,6 +243,7 @@ public class UserServiceImpl implements UserService {
      * Delegates to the repository to perform the search and maps the resulting page.
      */
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public Page<UserDto> getUsersBySearchTerm(String searchTerm, Pageable pageable) {
         if (pageable.isPaged()) {
@@ -259,6 +268,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceCreationConflictException if the card number is already associated with another user.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and #userId.toString() == authentication.name")
     @Transactional
     @CacheEvict(value = "users", key = "#userId")
     public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) {
@@ -292,6 +302,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the card with the specified ID is not found.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and @userAndCardSecurity.isCardOwner(#cardId, authentication)")
     @Transactional
     public void deleteCard(UUID cardId) {
         logger.debug("Attempting to delete card with id: {}", cardId);
@@ -311,6 +322,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the card with the specified ID is not found.
      */
     @Override
+    @PostAuthorize("hasRole('USER') and returnObject.userId().toString() == authentication.name")
     @Transactional(readOnly = true)
     public CardInfoDto getCardById(UUID cardId) {
         logger.debug("Fetching card with id: {}", cardId);
@@ -329,6 +341,7 @@ public class UserServiceImpl implements UserService {
      * {@inheritDoc}
      */
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public Optional<CardInfoDto> getCardByNumber(String cardNumber) {
         logger.debug("Fetching card with number: {}", cardNumber);
@@ -351,6 +364,7 @@ public class UserServiceImpl implements UserService {
      * it will return an empty list rather than throwing an exception.
      */
     @Override
+    @PreAuthorize("hasRole('USER') and #userId.toString() == authentication.name")
     @Transactional(readOnly = true)
     public List<CardInfoDto> getCardsByUserId(UUID userId) {
         logger.debug("Fetching cards for user with id: {}", userId);
@@ -367,6 +381,7 @@ public class UserServiceImpl implements UserService {
      * where the expiration date is in the past.
      */
     @Override
+    @PreAuthorize("hasRole('ADMIN')")
     @Transactional(readOnly = true)
     @Cacheable(value = "expiredCards")
     public List<CardInfoDto> getExpiredCards() {

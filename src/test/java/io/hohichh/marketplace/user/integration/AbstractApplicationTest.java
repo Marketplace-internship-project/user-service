@@ -5,6 +5,8 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
 import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
+import io.hohichh.marketplace.user.mapper.CardInfoMapper;
+import io.hohichh.marketplace.user.mapper.UserMapper;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.mock;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
 @ActiveProfiles("test")
 @Import({
         TestClockConfiguration.class,
@@ -44,6 +46,12 @@ public abstract class AbstractApplicationTest {
 
     @MockitoSpyBean
     protected CardRepository cardRepository;
+
+    @MockitoSpyBean
+    protected CardInfoMapper cardInfoMapper;
+
+    @MockitoSpyBean
+    protected UserMapper userMapper;
 
     static class RestResponsePage<T> extends PageImpl<T> {
 

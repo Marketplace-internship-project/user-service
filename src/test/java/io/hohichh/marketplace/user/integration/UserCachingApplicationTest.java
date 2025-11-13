@@ -1,18 +1,21 @@
 package io.hohichh.marketplace.user.integration;
 
 import io.hohichh.marketplace.user.dto.*;
-import io.hohichh.marketplace.user.repository.CardRepository;
-import io.hohichh.marketplace.user.repository.UserRepository;
+import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
+import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
+import io.hohichh.marketplace.user.integration.config.TestSecurityConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.time.LocalDate;

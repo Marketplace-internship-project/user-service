@@ -5,17 +5,12 @@ import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.dto.UserWithCardsDto;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
-import io.hohichh.marketplace.user.repository.CardRepository;
-import io.hohichh.marketplace.user.repository.UserRepository;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.*;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
-import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
-
 import java.time.Instant;
 import java.time.ZoneId;
 import java.util.List;
@@ -24,7 +19,6 @@ import java.time.LocalDate;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 

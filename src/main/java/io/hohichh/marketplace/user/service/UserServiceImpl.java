@@ -159,7 +159,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the user with the specified ID is not found.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('USER') and #id.toString() == authentication.name)")
     @Transactional(readOnly = true)
     @Cacheable(value = "users", key = "#id")
     public UserWithCardsDto getUserById(UUID id) {
@@ -321,7 +321,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the card with the specified ID is not found.
      */
     @Override
-    @PostAuthorize("hasRole('USER') and returnObject.userId().toString() == authentication.name")
+    @PostAuthorize("hasRole('ADMIN') or (hasRole('USER') and returnObject.userId().toString() == authentication.name)")
     @Transactional(readOnly = true)
     public CardInfoDto getCardById(UUID cardId) {
         logger.debug("Fetching card with id: {}", cardId);

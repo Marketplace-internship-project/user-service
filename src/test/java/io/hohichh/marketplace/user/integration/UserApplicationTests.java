@@ -297,7 +297,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		RestResponsePage<UserDto> responseBody = response.getBody();
 		assertThat(responseBody).isNotNull();
-		assertThat(responseBody.getTotalElements()).isEqualTo(0);
+		assertThat(responseBody.getTotalElements()).isZero();
 	}
 
 	@Test
@@ -344,7 +344,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				url, HttpMethod.GET, null, responseType, "Zebra"
 		);
 		assertThat(responseZebra.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(responseZebra.getBody().getTotalElements()).isEqualTo(0);
+		assertThat(responseZebra.getBody().getTotalElements()).isZero();
 	}
 
 	@Test
@@ -361,26 +361,26 @@ class UserApplicationTests extends AbstractApplicationTest {
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(response.getBody().getTotalElements()).isEqualTo(0);
+		assertThat(response.getBody().getTotalElements()).isZero();
 	}
 
 	@Test
 	void getAllUsersWithBirthdayToday_ShouldReturnUserList(){
-		final LocalDate MOCKED_TODAY = LocalDate.of(2025, 10, 30);
-		Instant fixedInstant = MOCKED_TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant();
+		final LocalDate today = LocalDate.of(2025, 10, 30);
+		Instant fixedInstant = today.atStartOfDay(ZoneId.of("UTC")).toInstant();
 		when(clock.instant()).thenReturn(fixedInstant);
 		when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
 		NewUserDto userToday1 = new NewUserDto("Mike", "Today",
-				MOCKED_TODAY.minusYears(20), "mike@today.com");
+				today.minusYears(20), "mike@today.com");
 		restTemplate.postForEntity("/v1/users", userToday1, UserDto.class);
 
 		NewUserDto userToday2 = new NewUserDto("Sarah", "Present",
-				MOCKED_TODAY.minusYears(30), "sarah@present.com");
+				today.minusYears(30), "sarah@present.com");
 		restTemplate.postForEntity("/v1/users", userToday2, UserDto.class);
 
 		NewUserDto userTomorrow = new NewUserDto("Tom", "Morrow",
-				MOCKED_TODAY.plusDays(1).minusYears(25), "tom@morrow.com");
+				today.plusDays(1).minusYears(25), "tom@morrow.com");
 		restTemplate.postForEntity("/v1/users", userTomorrow, UserDto.class);
 
 		createTestUser(); // Adam, 1999-01-01
@@ -394,17 +394,17 @@ class UserApplicationTests extends AbstractApplicationTest {
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
 		List<UserDto> birthdayUsers = response.getBody();
-		assertThat(birthdayUsers).isNotNull();
-		assertThat(birthdayUsers).hasSize(2);
 		assertThat(birthdayUsers)
+				.isNotNull()
+				.hasSize(2)
 				.extracting(UserDto::email)
 				.containsExactlyInAnyOrder("mike@today.com", "sarah@present.com");
 	}
 
 	@Test
 	void getAllUsersWithBirthdayToday_shouldReturnEmptyList_whenNoBirthdaysMatch() {
-		final LocalDate MOCKED_TODAY = LocalDate.of(2025, 10, 30);
-		Instant fixedInstant = MOCKED_TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant();
+		final LocalDate today = LocalDate.of(2025, 10, 30);
+		Instant fixedInstant = today.atStartOfDay(ZoneId.of("UTC")).toInstant();
 		when(clock.instant()).thenReturn(fixedInstant);
 		when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 

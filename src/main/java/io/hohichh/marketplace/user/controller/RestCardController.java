@@ -19,7 +19,7 @@ import java.util.UUID;
 @RequestMapping("/v1")
 public class RestCardController {
     private final UserService userService;
-    private final static Logger logger = LoggerFactory.getLogger(RestUserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestCardController.class);
 
     /**
      * Constructs a new RestUserController with the necessary UserService.

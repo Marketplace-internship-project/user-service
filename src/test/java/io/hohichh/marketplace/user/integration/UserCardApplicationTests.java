@@ -5,20 +5,13 @@ import io.hohichh.marketplace.user.dto.NewCardInfoDto;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
-import io.hohichh.marketplace.user.integration.config.TestClockConfiguration;
-import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration;
-import io.hohichh.marketplace.user.integration.config.TestSecurityConfig;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.context.annotation.Import;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.TestPropertySource;
 
 import java.time.Instant;
 import java.time.LocalDate;
@@ -250,9 +243,9 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<CardInfoDto> cards = response.getBody();
-        assertThat(cards).isNotNull();
-        assertThat(cards).hasSize(2);
         assertThat(cards)
+                .isNotNull()
+                .hasSize(2)
                 .extracting(CardInfoDto::cardNumber)
                 .containsExactlyInAnyOrder(card1.cardNumber(), card2.cardNumber());
     }
@@ -273,20 +266,20 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
     @Test
     void getExpiredCards_shouldReturnOnlyExpiredCards() {
-        final LocalDate MOCKED_TODAY = LocalDate.of(2025, 1, 1);
-        Instant fixedInstant = MOCKED_TODAY.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        final LocalDate today = LocalDate.of(2025, 1, 1);
+        Instant fixedInstant = today.atStartOfDay(ZoneId.of("UTC")).toInstant();
         when(clock.instant()).thenReturn(fixedInstant);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
         UUID userId = createTestUser(testUser);
 
         NewCardInfoDto expiredCardDto = new NewCardInfoDto(
-                "1111-EXPIRED", "Expired Card", MOCKED_TODAY.minusDays(1)
+                "1111-EXPIRED", "Expired Card", today.minusDays(1)
         );
         CardInfoDto expiredCard = createTestCard(userId, expiredCardDto);
 
         NewCardInfoDto activeCardDto = new NewCardInfoDto(
-                "2222-ACTIVE", "Active Card", MOCKED_TODAY
+                "2222-ACTIVE", "Active Card", today
         );
         createTestCard(userId, activeCardDto);
 
@@ -298,8 +291,9 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<CardInfoDto> cards = response.getBody();
-        assertThat(cards).isNotNull();
-        assertThat(cards).hasSize(1);
+        assertThat(cards)
+                .isNotNull()
+                .hasSize(1);
         assertThat(cards.get(0).id()).isEqualTo(expiredCard.id());
         assertThat(cards.get(0).cardNumber()).isEqualTo("1111-EXPIRED");
     }

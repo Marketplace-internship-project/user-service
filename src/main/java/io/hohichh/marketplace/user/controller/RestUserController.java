@@ -30,7 +30,7 @@ import java.util.UUID;
 public class RestUserController {
 
     private final UserService userService;
-    private final static Logger logger = LoggerFactory.getLogger(RestUserController.class);
+    private static final Logger logger = LoggerFactory.getLogger(RestUserController.class);
 
     /**
      * Constructs a new RestUserController with the necessary UserService.

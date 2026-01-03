@@ -13,13 +13,11 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.test.context.support.WithMockUser;
-import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.LocalDate;
 
 import org.junit.jupiter.api.BeforeEach;
-import org.springframework.beans.factory.annotation.Autowired;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.ZoneId;
@@ -34,8 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         TestContainerConfiguration.class,
         TestClockConfiguration.class
 })
-//@ActiveProfiles("test")
-public class UserSecurityIntegrationTests {
+class UserSecurityIntegrationTests {
 
     @Autowired
     private MockMvc mockMvc;

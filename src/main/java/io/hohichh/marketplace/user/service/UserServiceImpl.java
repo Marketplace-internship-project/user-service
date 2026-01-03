@@ -46,7 +46,7 @@ public class UserServiceImpl implements UserService {
     private final CardInfoMapper cardInfoMapper;
 
     private final Clock clock;
-    private final static Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
+    private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     /**
      * Constructs a new UserServiceImpl with the required repositories and mappers.
@@ -170,7 +170,7 @@ public class UserServiceImpl implements UserService {
                     return new ResourceNotFoundException("User with id " + id + " not found.");
                 });
 
-        List<CardInfo> cards = cardRepository.findByUserId(id);
+        cardRepository.findByUserId(id);
 
         logger.info("User with id: {} fetched successfully", id);
         return userMapper.toUserWithCardsDto(user);
@@ -192,7 +192,7 @@ public class UserServiceImpl implements UserService {
             logger.debug("User with email: {} not found", email);
             return Optional.empty();
         }
-        List<CardInfo> cards = cardRepository.findByUserId(user.getId());
+        cardRepository.findByUserId(user.getId());
 
         logger.info("User with id: {} fetched successfully by email", user.getId());
         return Optional.of(

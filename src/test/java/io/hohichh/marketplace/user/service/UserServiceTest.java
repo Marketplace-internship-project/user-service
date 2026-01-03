@@ -9,7 +9,6 @@ import io.hohichh.marketplace.user.model.CardInfo;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -51,7 +50,7 @@ class UserServiceTest {
 
     @Mock
     private Clock clock;
-    private final LocalDate FROZEN_DATE = LocalDate.of(2025, 1, 15);
+    private final LocalDate frozenDate = LocalDate.of(2025, 1, 15);
 
     @InjectMocks
     private UserServiceImpl userService;
@@ -88,17 +87,18 @@ class UserServiceTest {
     void createUser_shouldThrowResourceCreationConflictException_whenUserWithEmailExists() {
         NewUserDto newUserDto = new NewUserDto("John", "Doe",
                 null, "john.doe@example.com");
-        assertThrows(ResourceCreationConflictException.class, () -> {
-            when(userRepository.findByEmail(newUserDto.email()))
-                    .thenReturn(Optional.of(new User()));
 
-            userService.createUser(newUserDto);
+        when(userRepository.findByEmail(newUserDto.email()))
+                .thenReturn(Optional.of(new User()));
 
-            verify(userRepository).findByEmail(newUserDto.email());
-            verify(userMapper, never()).toUser(any());
-            verify(userRepository, never()).save(any());
-            verify(userMapper, never()).toUserDto(any());
-        });
+        assertThrows(ResourceCreationConflictException.class, () ->
+            userService.createUser(newUserDto)
+        );
+
+        verify(userRepository).findByEmail(newUserDto.email());
+        verify(userMapper, never()).toUser(any());
+        verify(userRepository, never()).save(any());
+        verify(userMapper, never()).toUserDto(any());
     }
     //====================================================================
     //DELETE USER TESTS
@@ -163,13 +163,13 @@ class UserServiceTest {
     @Test
     void updateUser_shouldThrowResourceNotFoundException_whenUserDoesNotExist() {
         UUID userId = UUID.randomUUID();
+        NewUserDto newUser = new NewUserDto("Jane", "Doe",
+                null, "jane@gmail.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.empty());
 
-        assertThrows(ResourceNotFoundException.class, () -> {
-            userService.updateUser(userId, new NewUserDto("Jane", "Doe",
-                    null, "jane@gmail.com"));
-        });
+        assertThrows(ResourceNotFoundException.class, () ->
+            userService.updateUser(userId, newUser));
 
         verify(userRepository).findById(userId);
         verify(userMapper, never()).updateUserFromDto(any(), any());
@@ -209,7 +209,7 @@ class UserServiceTest {
     //====================================================================
     //GET USER TESTS
     @Test
-    void getUserById_shouldReturnUserWithCards_whenUserExists() throws NotFoundException {
+    void getUserById_shouldReturnUserWithCards_whenUserExists() {
 
         UUID userId = UUID.randomUUID();
         User userEntity = new User();
@@ -319,7 +319,7 @@ class UserServiceTest {
 
     @Test
     void getUsersWithBirthdayToday_shouldReturnListOfUserDtos() {
-        Instant fixedInstant = FROZEN_DATE.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        Instant fixedInstant = frozenDate.atStartOfDay(ZoneId.of("UTC")).toInstant();
         when(clock.instant()).thenReturn(fixedInstant);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
@@ -330,16 +330,16 @@ class UserServiceTest {
 
         UserDto dto1 = new UserDto(UUID.randomUUID(), "A",
                 null,
-                LocalDate.of(1993, FROZEN_DATE.getMonth(), FROZEN_DATE.getDayOfMonth()),
+                LocalDate.of(1993, frozenDate.getMonth(), frozenDate.getDayOfMonth()),
                 "a@a.com");
         UserDto dto2 = new UserDto(UUID.randomUUID(), "B",
                 null,
-                LocalDate.of(2005, FROZEN_DATE.getMonth(), FROZEN_DATE.getDayOfMonth()),
+                LocalDate.of(2005, frozenDate.getMonth(), frozenDate.getDayOfMonth()),
                 "b@b.com");
 
         List<User> userList = List.of(user1, user2);
 
-        when(userRepository.findUsersWithBirthDayToday(FROZEN_DATE)).thenReturn(userList);
+        when(userRepository.findUsersWithBirthDayToday(frozenDate)).thenReturn(userList);
         when(userMapper.toUserDto(user1)).thenReturn(dto1);
         when(userMapper.toUserDto(user2)).thenReturn(dto2);
 
@@ -351,7 +351,7 @@ class UserServiceTest {
                 .extracting(UserDto::email)
                 .containsExactly("a@a.com", "b@b.com");
 
-        verify(userRepository).findUsersWithBirthDayToday(FROZEN_DATE);
+        verify(userRepository).findUsersWithBirthDayToday(frozenDate);
         verify(userMapper).toUserDto(user1);
         verify(userMapper).toUserDto(user2);
     }
@@ -431,7 +431,6 @@ class UserServiceTest {
     @Test
     void createCardForUser_shouldThrowResourceCreationConflictException_whenCardWithSameNumberExists() {
         UUID userId = UUID.randomUUID();
-        UUID userIdWithSameCard = UUID.randomUUID();
 
         NewCardInfoDto newCardDto = new NewCardInfoDto("1234",
                 "Holder", LocalDate.now());
@@ -439,8 +438,6 @@ class UserServiceTest {
 
         User userEntity = mock(User.class);
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-
-        User userEntityWithSameCard = mock(User.class);
 
         CardInfo cardWithSameNumber = mock(CardInfo.class);
         when(cardRepository.findByNumber(number)).thenReturn(Optional.of(cardWithSameNumber));
@@ -585,7 +582,7 @@ class UserServiceTest {
 
     @Test
     void getExpiredCards_shouldReturnListOfExpiredCardInfoDtos() {
-        Instant fixedInstant = FROZEN_DATE.atStartOfDay(ZoneId.of("UTC")).toInstant();
+        Instant fixedInstant = frozenDate.atStartOfDay(ZoneId.of("UTC")).toInstant();
         when(clock.instant()).thenReturn(fixedInstant);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
@@ -595,10 +592,10 @@ class UserServiceTest {
                         UUID.randomUUID(),
                         "9999",
                         "Expired Holder",
-                        FROZEN_DATE.minusDays(1))
+                        frozenDate.minusDays(1))
         );
 
-        when(cardRepository.findExpiredCardsNative(FROZEN_DATE)).thenReturn(expiredCardList);
+        when(cardRepository.findExpiredCardsNative(frozenDate)).thenReturn(expiredCardList);
         when(cardInfoMapper.toCardInfoDtoList(expiredCardList)).thenReturn(expectedDtoList);
 
         List<CardInfoDto> result = userService.getExpiredCards();
@@ -608,7 +605,7 @@ class UserServiceTest {
                 .hasSize(1);
         assertThat(result.get(0).cardNumber()).isEqualTo("9999");
 
-        verify(cardRepository).findExpiredCardsNative(FROZEN_DATE);
+        verify(cardRepository).findExpiredCardsNative(frozenDate);
         verify(cardInfoMapper).toCardInfoDtoList(expiredCardList);
     }
 }

@@ -2,8 +2,6 @@ package io.hohichh.marketplace.user.controller;
 
 import io.hohichh.marketplace.user.dto.CardInfoDto;
 import io.hohichh.marketplace.user.dto.NewCardInfoDto;
-import io.hohichh.marketplace.user.dto.NewUserDto;
-import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.service.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -24,7 +22,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-public class RestCardControllerTest {
+class RestCardControllerTest {
     @Mock
     private UserService userService;
 

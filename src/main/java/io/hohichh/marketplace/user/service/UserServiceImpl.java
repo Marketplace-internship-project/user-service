@@ -48,6 +48,11 @@ public class UserServiceImpl implements UserService {
     private final Clock clock;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
+    private static final String USER_NOT_FOUND_MSG = "User with id %s not found.";
+    private static final String USER_EMAIL_EXISTS_MSG = "User with email %s already exists.";
+    private static final String CARD_NOT_FOUND_MSG = "Card with id %s not found.";
+    private static final String CARD_NUMBER_EXISTS_MSD = "Card with number %s already exists.";
+
     /**
      * Constructs a new UserServiceImpl with the required repositories and mappers.
      *
@@ -86,7 +91,7 @@ public class UserServiceImpl implements UserService {
         String email = user.email();
         if (userRepository.findByEmail(email).isPresent()) {
             logger.error("User creation failed: email {} already exists", email);
-            throw new ResourceCreationConflictException("User with email " + email + " already exists.");
+            throw new ResourceCreationConflictException(String.format(USER_EMAIL_EXISTS_MSG, email));
         }
 
         User savedUser = userRepository.save(
@@ -111,7 +116,7 @@ public class UserServiceImpl implements UserService {
 
         if (!userRepository.existsById(id)) {
             logger.error("User deletion failed: user with id {} not found", id);
-            throw new ResourceNotFoundException("User with id " + id + " not found.");
+            throw new ResourceNotFoundException(String.format(USER_NOT_FOUND_MSG, id));
         }
 
         logger.info("User with id: {} deleted successfully", id);
@@ -134,14 +139,14 @@ public class UserServiceImpl implements UserService {
         User existingUser = userRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.error("User update failed: user with id {} not found", id);
-                    return new ResourceNotFoundException("User with id " + id + " not found.");
+                    return new ResourceNotFoundException(String.format(USER_NOT_FOUND_MSG, id));
                 });
 
         String newEmail = userToUpd.email();
         Optional<User> userWithSameEmail = userRepository.findByEmail(newEmail);
         if (userWithSameEmail.isPresent() && !userWithSameEmail.get().getId().equals(id)) {
             logger.error("User update failed: email {} already in use by another user", newEmail);
-            throw new ResourceCreationConflictException("Email " + newEmail + " is already in use by another user.");
+            throw new ResourceCreationConflictException(String.format(USER_EMAIL_EXISTS_MSG, newEmail));
         }
 
         userMapper.updateUserFromDto(userToUpd, existingUser);
@@ -167,7 +172,7 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> {
                     logger.error("User fetch failed: user with id {} not found", id);
-                    return new ResourceNotFoundException("User with id " + id + " not found.");
+                    return new ResourceNotFoundException(String.format(USER_NOT_FOUND_MSG, id));
                 });
 
         cardRepository.findByUserId(id);
@@ -275,13 +280,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> {
                     logger.error("Card creation failed: user with id {} not found", userId);
-                    return new ResourceNotFoundException("User with id " + userId + " not found.");
+                    return new ResourceNotFoundException(String.format(USER_NOT_FOUND_MSG, userId));
                 });
 
         String number = newCard.cardNumber();
         if (cardRepository.findByNumber(number).isPresent()) {
             logger.error("Card creation failed: card with number {} already exists", number);
-            throw new ResourceCreationConflictException("Card with number " + number + " already exists.");
+            throw new ResourceCreationConflictException(String.format(CARD_NUMBER_EXISTS_MSD, number));
         }
 
         CardInfo cardInfoEntity = cardInfoMapper.toCardInfo(newCard);
@@ -308,7 +313,7 @@ public class UserServiceImpl implements UserService {
 
         if (!cardRepository.existsById(cardId)) {
             logger.error("Card deletion failed: card with id {} not found", cardId);
-            throw new ResourceNotFoundException("Card with id " + cardId + " not found.");
+            throw new ResourceNotFoundException(String.format(CARD_NOT_FOUND_MSG, cardId));
         }
 
         logger.debug("Card with id: {} deleted successfully", cardId);
@@ -329,7 +334,7 @@ public class UserServiceImpl implements UserService {
         CardInfo cardInfo = cardRepository.findById(cardId)
                 .orElseThrow(() -> {
                     logger.error("Card fetch failed: card with id {} not found", cardId);
-                    return new ResourceNotFoundException("Card with id " + cardId + " not found.");
+                    return new ResourceNotFoundException(String.format(CARD_NOT_FOUND_MSG, cardId));
                 });
 
         logger.info("Card with id: {} fetched successfully", cardId);

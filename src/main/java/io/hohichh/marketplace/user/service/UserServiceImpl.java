@@ -49,7 +49,7 @@ public class UserServiceImpl implements UserService {
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
 
     private static final String USER_NOT_FOUND_MSG = "User with id %s not found.";
-    private static final String USER_EMAIL_EXISTS_MSG = "User with email %s already exists.";
+    private static final String USER_EMAIL_EXISTS_MSG = "Email %s is already in use by another user.";
     private static final String CARD_NOT_FOUND_MSG = "Card with id %s not found.";
     private static final String CARD_NUMBER_EXISTS_MSD = "Card with number %s already exists.";
 

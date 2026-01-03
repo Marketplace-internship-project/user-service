@@ -101,7 +101,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 
 		assertThat(conflictResponse.getBody()).isNotNull();
 		assertThat(conflictResponse.getBody().message())
-				.isEqualTo("User with email " + firstUser.email() + " already exists.");
+				.isEqualTo("Email " + firstUser.email() + " is already in use by another user.");
 	}
 
 	@Test

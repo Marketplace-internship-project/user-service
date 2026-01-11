@@ -19,5 +19,6 @@ public record CardInfoDto (
     String cardHolderName,
 
     @NotNull
+    @Future
     LocalDate expirationDate) implements Serializable{
 }

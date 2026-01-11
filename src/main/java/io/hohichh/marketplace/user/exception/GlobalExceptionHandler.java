@@ -1,139 +1,79 @@
-/*
- * Author: Yelizaveta Verkovich aka Hohich
- * Task: Implement global exception handling for the application's REST controllers
- */
-
 package io.hohichh.marketplace.user.exception;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.HttpStatusCode;
+import org.springframework.http.ProblemDetail;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.WebRequest;
+import org.springframework.web.servlet.mvc.method.annotation.ResponseEntityExceptionHandler;
 
 import java.util.HashMap;
 import java.util.Map;
 
-
-/**
- * Global exception handler for the REST API.
- * This class uses {@link RestControllerAdvice} to intercept exceptions thrown by
- * controllers and translate them into standardized, user-friendly HTTP error responses.
- */
 @RestControllerAdvice
-public class GlobalExceptionHandler {
+public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
 
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
+    @Override
+    protected ResponseEntity<Object> handleMethodArgumentNotValid(
+            MethodArgumentNotValidException ex,
+            HttpHeaders headers,
+            HttpStatusCode status,
+            WebRequest request) {
 
-    /**
-     * A simple record to represent a standardized error message in the API response.
-     *
-     * @param message The error message.
-     */
-    public record ErrorResponse(String message) {
-    }
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(status, "Validation failed");
+        problemDetail.setTitle("Bad Request");
 
-    /**
-     * Handles {@link AccessDeniedException}, which is thrown by Spring Security
-     * (e.g., @PreAuthorize) when an authenticated user does not have the
-     * necessary permissions.
-     * Returns an HTTP 403 (Forbidden) response.
-     *
-     * @param ex The caught {@link AccessDeniedException}.
-     * @return An {@link ErrorResponse} containing the error message.
-     */
-    @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ErrorResponse handleAccessDenied(AccessDeniedException ex) {
-        log.warn("Access denied: {}", ex.getMessage());
-        return new ErrorResponse("Access Denied: You do not have permission to perform this action.");
-    }
-
-
-    /**
-     * Handles {@link ResourceNotFoundException}.
-     * Returns an HTTP 404 (Not Found) response with the exception's message.
-     *
-     * @param ex The caught {@link ResourceNotFoundException}.
-     * @return An {@link ErrorResponse} containing the error message.
-     */
-    @ExceptionHandler(ResourceNotFoundException.class)
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ErrorResponse handleResourceNotFound(ResourceNotFoundException ex) {
-        return new ErrorResponse(ex.getMessage());
-    }
-
-
-    /**
-     * Handles {@link ResourceCreationConflictException}.
-     * Returns an HTTP 409 (Conflict) response, typically used when a resource
-     * (like a user with a unique email) already exists.
-     *
-     * @param ex The caught {@link ResourceCreationConflictException}.
-     * @return An {@link ErrorResponse} containing the conflict message.
-     */
-    @ExceptionHandler(ResourceCreationConflictException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ErrorResponse handleConflict(ResourceCreationConflictException ex) {
-        return new ErrorResponse(ex.getMessage());
-    }
-
-
-    /**
-     * Handles {@link InvalidMethodArgumentException}.
-     * Returns an HTTP 400 (Bad Request) response.
-     *
-     * @param ex The caught {@link InvalidMethodArgumentException}.
-     * @return An {@link ErrorResponse} containing the error message.
-     */
-    @ExceptionHandler(InvalidMethodArgumentException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public ErrorResponse handleInvalidMethodArgument(InvalidMethodArgumentException ex) {
-        return new ErrorResponse(ex.getMessage());
-    }
-
-    /**
-     * Handles {@link MethodArgumentNotValidException}, which is thrown by Spring Validation
-     * (e.g., @Valid) when DTO validation fails.
-     * Returns an HTTP 400 (Bad Request) response containing a map of violated fields
-     * and their corresponding error messages.
-     *
-     * @param ex The caught {@link MethodArgumentNotValidException}.
-     * @return A Map where the key is the field name and the value is the validation error message.
-     */
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidationExceptions(MethodArgumentNotValidException ex) {
         Map<String, String> errors = new HashMap<>();
         ex.getBindingResult().getAllErrors().forEach(error -> {
             String fieldName = ((FieldError) error).getField();
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-        return errors;
+
+        problemDetail.setProperty("errors", errors);
+
+        return createResponseEntity(problemDetail, headers, status, request);
     }
 
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ProblemDetail handleResourceNotFound(ResourceNotFoundException ex) {
+        log.error("Error: can't find resource \n {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.NOT_FOUND, ex.getMessage());
+        problemDetail.setTitle("Resource Not Found");
+        return problemDetail;
+    }
 
-    /**
-     * A general catch-all exception handler for any unhandled exceptions.
-     * Logs the full exception stack trace for debugging.
-     * Returns an HTTP 500 (Internal Server Error) with a generic, non-specific
-     * message to avoid leaking sensitive implementation details.
-     *
-     * @param ex The caught {@link Exception}.
-     * @return A generic {@link ErrorResponse}.
-     */
+    @ExceptionHandler(ResourceCreationConflictException.class)
+    public ProblemDetail handleConflict(ResourceCreationConflictException ex) {
+        log.error("Error: creation resource conflict \n {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, ex.getMessage());
+        problemDetail.setTitle("Resource Conflict");
+        return problemDetail;
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ProblemDetail handleAccessDenied(AccessDeniedException ex) {
+        log.warn("Access denied: {}", ex.getMessage());
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.FORBIDDEN, "You do not have permission to perform this action.");
+        problemDetail.setTitle("Access Denied");
+        return problemDetail;
+    }
+
     @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ErrorResponse handleGenericException(Exception ex) {
-
+    public ProblemDetail handleGenericException(Exception ex) {
         log.error("Unhandled exception occurred: ", ex);
-
-        return new ErrorResponse("An unexpected internal server error occurred.");
+        ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.INTERNAL_SERVER_ERROR, "An unexpected internal server error occurred.");
+        problemDetail.setTitle("Internal Server Error");
+        return problemDetail;
     }
 }

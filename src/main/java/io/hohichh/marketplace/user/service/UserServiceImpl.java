@@ -307,6 +307,7 @@ public class UserServiceImpl implements UserService {
      */
     @Override
     @PreAuthorize("hasRole('USER') and @userAndCardSecurity.isCardOwner(#cardId, authentication)")
+    @CacheEvict(value="expiredCards", allEntries=true)
     @Transactional
     public void deleteCard(UUID cardId) {
         logger.debug("Attempting to delete card with id: {}", cardId);

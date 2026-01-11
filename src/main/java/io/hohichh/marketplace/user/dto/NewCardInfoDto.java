@@ -1,8 +1,6 @@
 package io.hohichh.marketplace.user.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.io.Serializable;
 import java.time.LocalDate;
@@ -15,5 +13,6 @@ public record NewCardInfoDto(
         @Size(max = 255)
     String cardHolderName,
         @NotNull
+        @Future
     LocalDate expirationDate) implements Serializable {
 }

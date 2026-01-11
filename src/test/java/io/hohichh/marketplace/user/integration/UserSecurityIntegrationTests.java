@@ -186,7 +186,6 @@ class UserSecurityIntegrationTests {
     @WithMockUser(username = selfUserId, roles = "USER")
     void getUserById_shouldSucceed_whenGettingSelf() throws Exception {
         // @PreAuthorize("...#id.toString() == authentication.name")
-        // Ожидаем 404 (т.к. юзер не создан в БД), но security пропустит
         mockMvc.perform(get("/v1/users/" + selfUserId))
                 .andExpect(status().isNotFound());
     }
@@ -205,7 +204,6 @@ class UserSecurityIntegrationTests {
         // @PreAuthorize("...#id.toString() == authentication.name")
         NewUserDto userDto = new NewUserDto("name", "surname", null, "email@email.com");
 
-        // Ожидаем 404 (юзер не найден), но security пропустит
         mockMvc.perform(put("/v1/users/" + selfUserId)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(userDto)))
@@ -228,7 +226,6 @@ class UserSecurityIntegrationTests {
     @WithMockUser(username = selfUserId, roles = "USER")
     void deleteUser_shouldSucceed_whenDeletingSelf() throws Exception {
         // @PreAuthorize("...#id.toString() == authentication.name")
-        // Ожидаем 404 (юзер не найден), но security пропустит
         mockMvc.perform(delete("/v1/users/" + selfUserId))
                 .andExpect(status().isNotFound());
     }
@@ -245,7 +242,6 @@ class UserSecurityIntegrationTests {
     @WithMockUser(username = selfUserId, roles = "USER")
     void getCardsByUserId_shouldSucceed_whenGettingSelf() throws Exception {
         // @PreAuthorize("...#userId.toString() == authentication.name")
-        // Ожидаем 200 OK (с пустым списком), так как security пропустит
         mockMvc.perform(get("/v1/users/" + selfUserId + "/cards"))
                 .andExpect(status().isOk());
     }
@@ -262,9 +258,11 @@ class UserSecurityIntegrationTests {
     @WithMockUser(username = selfUserId, roles = "USER")
     void createCardForUser_shouldSucceed_whenCreatingForSelf() throws Exception {
         // @PreAuthorize("...#userId.toString() == authentication.name")
-        NewCardInfoDto cardDto = new NewCardInfoDto("123", "Holder", LocalDate.now());
+        NewCardInfoDto cardDto = new NewCardInfoDto(
+                "123",
+                "Holder",
+                LocalDate.now().plusYears(1));
 
-        // Ожидаем 404 (юзер не найден), но security пропустит
         mockMvc.perform(post("/v1/users/" + selfUserId + "/cards")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(cardDto)))
@@ -274,7 +272,10 @@ class UserSecurityIntegrationTests {
     @Test
     @WithMockUser(username = selfUserId, roles = "USER")
     void createCardForUser_shouldFail_whenCreatingForOther() throws Exception {
-        NewCardInfoDto cardDto = new NewCardInfoDto("123", "Holder", LocalDate.now());
+        NewCardInfoDto cardDto = new NewCardInfoDto(
+                "123",
+                "Holder",
+                LocalDate.now().plusYears(1));
 
         mockMvc.perform(post("/v1/users/" + otherUserId + "/cards")
                         .contentType(MediaType.APPLICATION_JSON)

@@ -40,7 +40,7 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         testCard = new NewCardInfoDto(
                 "1111-1111-1111-1111",
                 "ADAM FIRSTHUMAN",
-                LocalDate.of(2026, 1,1 )
+                LocalDate.now().plusYears(1)
         );
     }
 
@@ -267,35 +267,45 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
     @Test
     void getExpiredCards_shouldReturnOnlyExpiredCards() {
-        final LocalDate today = LocalDate.of(2025, 1, 1);
+        final LocalDate today = LocalDate.now();
         Instant fixedInstant = today.atStartOfDay(ZoneId.of("UTC")).toInstant();
         when(clock.instant()).thenReturn(fixedInstant);
         when(clock.getZone()).thenReturn(ZoneId.of("UTC"));
 
         UUID userId = createTestUser(testUser);
 
-        NewCardInfoDto expiredCardDto = new NewCardInfoDto(
-                "1111-EXPIRED", "Expired Card", today.minusDays(1)
-        );
-        CardInfoDto expiredCard = createTestCard(userId, expiredCardDto);
+
+        var userEntity = userRepository.findById(userId).orElseThrow();
+
+        var expiredCardEntity = io.hohichh.marketplace.user.model.CardInfo.builder()
+                .number("1111-EXPIRED")
+                .expiryDate(today.minusDays(1))
+                .user(userEntity)
+                .holder("Expired Card")
+                .build();
+
+        cardRepository.save(expiredCardEntity);
 
         NewCardInfoDto activeCardDto = new NewCardInfoDto(
-                "2222-ACTIVE", "Active Card", today
+                "2222-ACTIVE", "Active Card", today.plusDays(10)
         );
         createTestCard(userId, activeCardDto);
 
         String url = "/v1/cards?expiration-date=today";
         ParameterizedTypeReference<List<CardInfoDto>> responseType = new ParameterizedTypeReference<>() {};
+
         ResponseEntity<List<CardInfoDto>> response = restTemplate.exchange(
                 url, HttpMethod.GET, null, responseType
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
         List<CardInfoDto> cards = response.getBody();
+
         assertThat(cards)
                 .isNotNull()
                 .hasSize(1);
-        assertThat(cards.getFirst().id()).isEqualTo(expiredCard.id());
+
+        assertThat(cards.getFirst().id()).isEqualTo(expiredCardEntity.getId());
         assertThat(cards.getFirst().cardNumber()).isEqualTo("1111-EXPIRED");
     }
 }

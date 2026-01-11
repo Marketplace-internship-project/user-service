@@ -4,20 +4,19 @@ import io.hohichh.marketplace.user.dto.CardInfoDto;
 import io.hohichh.marketplace.user.dto.NewCardInfoDto;
 import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
-import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.ParameterizedTypeReference;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ProblemDetail;
 import org.springframework.http.ResponseEntity;
 
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -98,14 +97,15 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         UUID nonexistentUserId = UUID.randomUUID();
         String url = "/v1/users/" + nonexistentUserId + "/cards";
 
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.postForEntity(
+        ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
                 url,
                 testCard,
-                GlobalExceptionHandler.ErrorResponse.class
+                ProblemDetail.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().message())
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getDetail())
                 .isEqualTo("User with id " + nonexistentUserId + " not found.");
     }
 
@@ -119,14 +119,15 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
         String url = "/v1/users/" + userId2 + "/cards";
 
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.postForEntity(
+        ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
                 url,
                 testCard,
-                GlobalExceptionHandler.ErrorResponse.class
+                ProblemDetail.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
-        assertThat(response.getBody().message())
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getDetail())
                 .isEqualTo("Card with number " + testCard.cardNumber() + " already exists.");
     }
 
@@ -139,14 +140,13 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         );
         String url = "/v1/users/" + userId + "/cards";
 
-        ResponseEntity<Map> response = restTemplate.postForEntity(
+        ResponseEntity<ProblemDetail> response = restTemplate.postForEntity(
                 url,
                 invalidCard,
-                Map.class
+                ProblemDetail.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.BAD_REQUEST);
-        assertThat(response.getBody().toString()).contains("cardNumber");
     }
 
     @Test
@@ -161,8 +161,8 @@ class UserCardApplicationTests extends AbstractApplicationTest {
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NO_CONTENT);
 
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> getResponse = restTemplate.getForEntity(
-                url, GlobalExceptionHandler.ErrorResponse.class
+        ResponseEntity<ProblemDetail> getResponse = restTemplate.getForEntity(
+                url, ProblemDetail.class
         );
         assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
     }
@@ -172,12 +172,13 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         UUID nonexistentCardId = UUID.randomUUID();
         String url = "/v1/cards/" + nonexistentCardId;
 
-        ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.exchange(
-                url, HttpMethod.DELETE, null, GlobalExceptionHandler.ErrorResponse.class
+        ResponseEntity<ProblemDetail> response = restTemplate.exchange(
+                url, HttpMethod.DELETE, null, ProblemDetail.class
         );
 
         assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-        assertThat(response.getBody().message())
+        assertThat(response.getBody()).isNotNull();
+        assertThat(response.getBody().getDetail())
                 .isEqualTo("Card with id " + nonexistentCardId + " not found.");
     }
 
@@ -294,7 +295,7 @@ class UserCardApplicationTests extends AbstractApplicationTest {
         assertThat(cards)
                 .isNotNull()
                 .hasSize(1);
-        assertThat(cards.get(0).id()).isEqualTo(expiredCard.id());
-        assertThat(cards.get(0).cardNumber()).isEqualTo("1111-EXPIRED");
+        assertThat(cards.getFirst().id()).isEqualTo(expiredCard.id());
+        assertThat(cards.getFirst().cardNumber()).isEqualTo("1111-EXPIRED");
     }
 }

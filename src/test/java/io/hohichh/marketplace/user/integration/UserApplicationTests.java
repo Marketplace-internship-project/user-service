@@ -4,7 +4,6 @@ import io.hohichh.marketplace.user.dto.NewUserDto;
 import io.hohichh.marketplace.user.dto.UserDto;
 import io.hohichh.marketplace.user.dto.UserWithCardsDto;
 import io.hohichh.marketplace.user.model.User;
-import io.hohichh.marketplace.user.exception.GlobalExceptionHandler;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -88,19 +87,19 @@ class UserApplicationTests extends AbstractApplicationTest {
 				"Eve",
 				"SecondHuman",
 				LocalDate.of(2000, 1, 1),
-				firstUser.email() // Используем email первого юзера
+				firstUser.email()
 		);
 
-		ResponseEntity<GlobalExceptionHandler.ErrorResponse> conflictResponse = restTemplate.postForEntity(
+		ResponseEntity<ProblemDetail> conflictResponse = restTemplate.postForEntity(
 				"/v1/users",
 				duplicateUserDto,
-				GlobalExceptionHandler.ErrorResponse.class
+				ProblemDetail.class
 		);
 
 		assertThat(conflictResponse.getStatusCode()).isEqualTo(HttpStatus.CONFLICT);
 
 		assertThat(conflictResponse.getBody()).isNotNull();
-		assertThat(conflictResponse.getBody().message())
+		assertThat(conflictResponse.getBody().getDetail())
 				.isEqualTo("Email " + firstUser.email() + " is already in use by another user.");
 	}
 
@@ -144,23 +143,23 @@ class UserApplicationTests extends AbstractApplicationTest {
 		HttpEntity<NewUserDto> requestEntity = new HttpEntity<>(updateUserData);
 
 
-		ResponseEntity<GlobalExceptionHandler.ErrorResponse> response = restTemplate.exchange(
+		ResponseEntity<ProblemDetail> response = restTemplate.exchange(
 				"/v1/users/" + nonexistentUserId,
 				HttpMethod.PUT,
 				requestEntity,
-				GlobalExceptionHandler.ErrorResponse.class
+				ProblemDetail.class
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
 
 		assertThat(response.getBody()).isNotNull();
-		assertThat(response.getBody().message())
+		assertThat(response.getBody().getDetail())
 				.isEqualTo("User with id " + nonexistentUserId + " not found.");
 	}
 
 	@Test
 	void deleteUser_ShouldReturnNoContent_WhenUserDeleted(){
-		UserDto createdUser = createTestUser(); // Используем helper
+		UserDto createdUser = createTestUser();
 		UUID userId = createdUser.id();
 
 		ResponseEntity<Void> deleteResponse = restTemplate.exchange(
@@ -179,15 +178,16 @@ class UserApplicationTests extends AbstractApplicationTest {
 	void deleteUser_ShouldReturnNotFound_WhenUserDoesNotExist(){
 		UUID nonexistentUserId = UUID.randomUUID();
 
-		ResponseEntity<GlobalExceptionHandler.ErrorResponse> deleteResponse = restTemplate.exchange(
+		ResponseEntity<ProblemDetail> deleteResponse = restTemplate.exchange(
 				"/v1/users/" + nonexistentUserId,
 				HttpMethod.DELETE,
 				null,
-				GlobalExceptionHandler.ErrorResponse.class
+				ProblemDetail.class
 		);
 
 		assertThat(deleteResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-		assertThat(deleteResponse.getBody().message())
+		assertThat(deleteResponse.getBody()).isNotNull();
+		assertThat(deleteResponse.getBody().getDetail())
 				.isEqualTo("User with id " + nonexistentUserId + " not found.");
 	}
 
@@ -213,13 +213,14 @@ class UserApplicationTests extends AbstractApplicationTest {
 	void getUserById_ShouldReturnNotFound_WhenUserDoesNotExist() {
 		UUID nonexistentUserId = UUID.randomUUID();
 
-		ResponseEntity<GlobalExceptionHandler.ErrorResponse> getResponse = restTemplate.getForEntity(
+		ResponseEntity<ProblemDetail> getResponse = restTemplate.getForEntity(
 				"/v1/users/" + nonexistentUserId,
-				GlobalExceptionHandler.ErrorResponse.class
+				ProblemDetail.class
 		);
 
 		assertThat(getResponse.getStatusCode()).isEqualTo(HttpStatus.NOT_FOUND);
-		assertThat(getResponse.getBody().message())
+		assertThat(getResponse.getBody()).isNotNull();
+		assertThat(getResponse.getBody().getDetail())
 				.isEqualTo("User with id " + nonexistentUserId + " not found.");
 	}
 
@@ -330,6 +331,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				url, HttpMethod.GET, null, responseType, "Human"
 		);
 		assertThat(responseHuman.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(responseHuman.getBody()).isNotNull();
 		assertThat(responseHuman.getBody().getTotalElements()).isEqualTo(2);
 
 
@@ -337,6 +339,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				url, HttpMethod.GET, null, responseType, "smith"
 		);
 		assertThat(responseSmith.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(responseSmith.getBody()).isNotNull();
 		assertThat(responseSmith.getBody().getTotalElements()).isEqualTo(1);
 
 
@@ -344,6 +347,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 				url, HttpMethod.GET, null, responseType, "Zebra"
 		);
 		assertThat(responseZebra.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(responseZebra.getBody()).isNotNull();
 		assertThat(responseZebra.getBody().getTotalElements()).isZero();
 	}
 
@@ -361,6 +365,7 @@ class UserApplicationTests extends AbstractApplicationTest {
 		);
 
 		assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+		assertThat(response.getBody()).isNotNull();
 		assertThat(response.getBody().getTotalElements()).isZero();
 	}
 

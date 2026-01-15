@@ -1,6 +1,9 @@
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.dto.registration.AuthServiceResponse;
+import io.hohichh.marketplace.user.dto.registration.NewUserCredsDto;
+import io.hohichh.marketplace.user.dto.registration.UserCredsDto;
 import io.hohichh.marketplace.user.exception.ResourceCreationConflictException;
 import io.hohichh.marketplace.user.exception.ResourceNotFoundException;
 import io.hohichh.marketplace.user.mapper.CardInfoMapper;
@@ -9,6 +12,7 @@ import io.hohichh.marketplace.user.model.CardInfo;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
+import io.hohichh.marketplace.user.webclient.AuthServiceClient;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -48,12 +52,64 @@ class UserServiceTest {
     private CardInfoMapper cardInfoMapper;
 
     @Mock
+    private AuthServiceClient authClient;
+
+    @Mock
     private Clock clock;
     private final LocalDate frozenDate = LocalDate.of(2025, 1, 15);
 
     @InjectMocks
     private UserServiceImpl userService;
 
+
+    @Test
+    void registerUser_shouldSaveAndCreateCredentials(){
+        NewUserCredsDto fullDto = new NewUserCredsDto(
+                "John",
+                "Doe",
+                null,
+                "john.doe@example.com",
+                "login",
+                "password"
+        );
+
+        NewUserDto profileInfo = new NewUserDto(
+                fullDto.name(),
+                fullDto.surname(),
+                fullDto.birthDate(),
+                fullDto.email()
+        );
+
+
+        UserDto savedUser = new UserDto(
+                UUID.randomUUID(),
+                fullDto.name(),
+                fullDto.surname(),
+                fullDto.birthDate(),
+                fullDto.email()
+        );
+
+        when(userMapper.toUser(any(NewUserDto.class))).thenReturn(new User());
+        when(userRepository.save(any(User.class))).thenReturn(new User());
+        when(userMapper.toUserDto(any(User.class))).thenReturn(savedUser);
+
+        UserCredsDto userCredsDto = new UserCredsDto(savedUser.id(),
+                fullDto.login(), fullDto.password());
+        when(authClient.createCredentials(userCredsDto))
+                .thenReturn(new AuthServiceResponse(savedUser.id()));
+
+        UserDto result = userService.registerUser(fullDto);
+
+        assertThat(result).isNotNull();
+        assertThat(result.email()).isEqualTo(fullDto.email());
+
+        verify(userMapper).toUser(any(NewUserDto.class));
+        verify(userRepository).save(any(User.class));
+        verify(authClient).createCredentials(argThat(creds ->
+                creds.login().equals("login") &&
+                        creds.userId().equals(savedUser.id())
+        ));
+    }
 
     //========================================================================
     //CREATE USER TEST
@@ -95,7 +151,7 @@ class UserServiceTest {
         );
 
         verify(userRepository).findByEmail(newUserDto.email());
-        verify(userMapper, never()).toUser(any());
+        verify(userMapper, never()).toUser(any(NewUserDto.class));
         verify(userRepository, never()).save(any());
         verify(userMapper, never()).toUserDto(any());
     }

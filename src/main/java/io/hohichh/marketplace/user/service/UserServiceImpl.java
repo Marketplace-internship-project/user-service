@@ -6,6 +6,8 @@
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.dto.registration.UserCredsDto;
+import io.hohichh.marketplace.user.dto.registration.NewUserCredsDto;
 import io.hohichh.marketplace.user.exception.ResourceCreationConflictException;
 import io.hohichh.marketplace.user.exception.ResourceNotFoundException;
 import io.hohichh.marketplace.user.mapper.CardInfoMapper;
@@ -14,9 +16,10 @@ import io.hohichh.marketplace.user.model.CardInfo;
 import io.hohichh.marketplace.user.model.User;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
+import io.hohichh.marketplace.user.webclient.AuthServiceClient;
+import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.data.domain.Page;
@@ -37,6 +40,7 @@ import java.util.UUID;
  * Handles the business logic for managing users and their payment cards,
  * interacting with the repositories.
  */
+@RequiredArgsConstructor
 @Service
 public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
@@ -44,6 +48,8 @@ public class UserServiceImpl implements UserService {
 
     private final UserMapper userMapper;
     private final CardInfoMapper cardInfoMapper;
+
+    private final AuthServiceClient authClient;
 
     private final Clock clock;
     private static final Logger logger = LoggerFactory.getLogger(UserServiceImpl.class);
@@ -53,27 +59,30 @@ public class UserServiceImpl implements UserService {
     private static final String CARD_NOT_FOUND_MSG = "Card with id %s not found.";
     private static final String CARD_NUMBER_EXISTS_MSD = "Card with number %s already exists.";
 
-    /**
-     * Constructs a new UserServiceImpl with the required repositories and mappers.
-     *
-     * @param userRepository Repository for user data access.
-     * @param cardRepository Repository for card data access.
-     * @param userMapper     Mapper for user entity/DTO conversion.
-     * @param cardInfoMapper Mapper for card entity/DTO conversion.
-     */
-    @Autowired
-    public UserServiceImpl(UserRepository userRepository,
-                           CardRepository cardRepository,
-                           UserMapper userMapper,
-                           CardInfoMapper cardInfoMapper,
-                           Clock clock) {
-        this.userRepository = userRepository;
-        this.cardRepository = cardRepository;
-        this.userMapper = userMapper;
-        this.cardInfoMapper = cardInfoMapper;
-        this.clock = clock;
 
-        logger.trace("UserServiceImpl initialized with UserRepository and CardRepository");
+    @Transactional
+    @CacheEvict(value = "usersWithBirthdayToday", allEntries = true)
+    @Override
+    public UserDto registerUser(NewUserCredsDto newUser) {
+        logger.debug("Attempting to register user with email: {}", newUser.email());
+        NewUserDto profileInfo = new NewUserDto(
+                newUser.name(),
+                newUser.surname(),
+                newUser.birthDate(),
+                newUser.email()
+        );
+
+        UserDto user = createUser(profileInfo);
+
+        UserCredsDto credentials = new UserCredsDto(
+                user.id(),
+                newUser.login(),
+                newUser.password()
+        );
+
+        authClient.createCredentials(credentials);
+        logger.info("User with id {} registered successfully", user.id());
+        return user;
     }
 
     /**
@@ -108,7 +117,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the user with the specified ID is not found.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
+    @PreAuthorize("(hasRole('USER') and #id.toString() == authentication.name) or hasRole('ADMIN')")
     @Transactional
     @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public void deleteUser(UUID id) {
@@ -131,7 +140,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceCreationConflictException if the new email is already in use by another user.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and #id.toString() == authentication.name")
+    @PreAuthorize("(hasRole('USER') and #id.toString() == authentication.name) or hasRole('ADMIN')")
     @Transactional
     @CacheEvict(value = {"users", "usersWithBirthdayToday"}, key = "#id", allEntries = true)
     public UserDto updateUser(UUID id, NewUserDto userToUpd) {
@@ -272,7 +281,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceCreationConflictException if the card number is already associated with another user.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and #userId.toString() == authentication.name")
+    @PreAuthorize("(hasRole('USER') and #userId.toString() == authentication.name) or hasRole('ADMIN')")
     @Transactional
     @CacheEvict(value = "users", key = "#userId")
     public CardInfoDto createCardForUser(UUID userId, NewCardInfoDto newCard) {
@@ -306,7 +315,7 @@ public class UserServiceImpl implements UserService {
      * @throws ResourceNotFoundException if the card with the specified ID is not found.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and @userAndCardSecurity.isCardOwner(#cardId, authentication)")
+    @PreAuthorize("(hasRole('USER') and @userAndCardSecurity.isCardOwner(#cardId, authentication)) or hasRole('ADMIN')")
     @CacheEvict(value="expiredCards", allEntries=true)
     @Transactional
     public void deleteCard(UUID cardId) {
@@ -369,7 +378,7 @@ public class UserServiceImpl implements UserService {
      * it will return an empty list rather than throwing an exception.
      */
     @Override
-    @PreAuthorize("hasRole('USER') and #userId.toString() == authentication.name")
+    @PreAuthorize("(hasRole('USER') and #userId.toString() == authentication.name) or hasRole('ADMIN')")
     @Transactional(readOnly = true)
     public List<CardInfoDto> getCardsByUserId(UUID userId) {
         logger.debug("Fetching cards for user with id: {}", userId);

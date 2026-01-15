@@ -34,6 +34,9 @@ public interface UserMapper {
     @Mapping(target = "cards", ignore = true)
     User toUser(NewUserDto newUserDto);
 
+    @Mapping(target = "cards", ignore = true)
+    User toUser(UserDto newUserDto);
+
     /**
      * Converts a {@link User} entity to a standard {@link UserDto}.
      *

@@ -5,6 +5,7 @@
 package io.hohichh.marketplace.user.service;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.dto.registration.NewUserCredsDto;
 import org.springframework.data.crossstore.ChangeSetPersister.NotFoundException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,6 +20,7 @@ import java.util.UUID;
  */
 public interface UserService {
 
+    UserDto registerUser(NewUserCredsDto user);
     /**
      * Creates a new user based on the provided data.
      *

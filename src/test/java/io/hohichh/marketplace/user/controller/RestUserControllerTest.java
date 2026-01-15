@@ -1,7 +1,10 @@
 package io.hohichh.marketplace.user.controller;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.dto.registration.NewUserCredsDto;
+import io.hohichh.marketplace.user.dto.registration.UserCredsDto;
 import io.hohichh.marketplace.user.service.UserService;
+import io.hohichh.marketplace.user.webclient.AuthServiceClient;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -30,6 +33,7 @@ class RestUserControllerTest {
     @Mock
     private UserService userService;
 
+
     @InjectMocks
     private RestUserController restUserController;
 
@@ -42,6 +46,25 @@ class RestUserControllerTest {
         testUserId = UUID.randomUUID();
         testNewUserDto = new NewUserDto("John", "Doe", LocalDate.now().minusYears(20), "john@example.com");
         testUserDto = new UserDto(testUserId, "John", "Doe", LocalDate.now().minusYears(20), "john@example.com");
+    }
+
+    @Test
+    void registerUser_shouldCreateUser_shouldCallAuthClient(){
+        when(userService.registerUser(any(NewUserCredsDto.class))).thenReturn(testUserDto);
+
+        NewUserCredsDto newCreds = new NewUserCredsDto(
+                testNewUserDto.name(),
+                testNewUserDto.surname(),
+                testNewUserDto.birthDate(),
+                testNewUserDto.email(),
+                "login",
+                "password"
+        );
+
+        ResponseEntity<UserDto> response = restUserController.registerUser(newCreds);
+
+        assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
+        verify(userService).registerUser(any(NewUserCredsDto.class));
     }
 
     @Test

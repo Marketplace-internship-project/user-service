@@ -6,6 +6,7 @@
 package io.hohichh.marketplace.user.controller;
 
 import io.hohichh.marketplace.user.dto.*;
+import io.hohichh.marketplace.user.dto.registration.NewUserCredsDto;
 import io.hohichh.marketplace.user.service.UserService;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
@@ -40,12 +41,18 @@ public class RestUserController {
     public RestUserController(UserService userService){
         this.userService = userService;
 
-        logger.trace("RestUserController initialized succesfully: userService has been injected");
+        logger.trace("RestUserController initialized successfully: userService has been injected");
     }
 
     //=========== USER METHODS ========================================================
+    @PostMapping("/registration/users")
+    public ResponseEntity<UserDto> registerUser(@Valid @RequestBody NewUserCredsDto newUser) {
+        logger.debug("Received request to create a new user");
 
+        UserDto registeredUser = userService.registerUser(newUser);
 
+        return new ResponseEntity<>(registeredUser, HttpStatus.CREATED);
+    }
     /**
      * Creates a new user.
      *

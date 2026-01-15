@@ -1,5 +1,6 @@
 package io.hohichh.marketplace.user.exception;
 
+import feign.FeignException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpHeaders;
@@ -45,6 +46,23 @@ public class GlobalExceptionHandler extends ResponseEntityExceptionHandler {
         problemDetail.setProperty("errors", errors);
 
         return createResponseEntity(problemDetail, headers, status, request);
+    }
+
+    @ExceptionHandler(FeignException.class)
+    public ProblemDetail handleFeignException(FeignException ex) {
+        if (ex.status() == 409) {
+            String serviceMessage = ex.contentUTF8();
+            if (serviceMessage == null || serviceMessage.isBlank()) {
+                serviceMessage = "Login or data already exists in Auth Service";
+            }
+
+            ProblemDetail problemDetail = ProblemDetail.forStatusAndDetail(HttpStatus.CONFLICT, serviceMessage);
+            problemDetail.setTitle("Conflict in downstream service");
+            return problemDetail;
+        }
+
+        logger.error("Error calling external service: ", ex);
+        return ProblemDetail.forStatusAndDetail(HttpStatus.BAD_GATEWAY, "External service error");
     }
 
     @ExceptionHandler(ResourceNotFoundException.class)

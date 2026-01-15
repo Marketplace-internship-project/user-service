@@ -8,6 +8,7 @@ import io.hohichh.marketplace.user.integration.config.TestContainerConfiguration
 import io.hohichh.marketplace.user.integration.config.TestSecurityConfig;
 import io.hohichh.marketplace.user.repository.CardRepository;
 import io.hohichh.marketplace.user.repository.UserRepository;
+import io.hohichh.marketplace.user.webclient.AuthServiceClient;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.web.client.TestRestTemplate;
@@ -17,13 +18,14 @@ import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.context.bean.override.mockito.MockitoSpyBean;
 
 import java.time.Clock;
 import java.util.List;
 
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+
 @ActiveProfiles("test")
 @Import({
         TestClockConfiguration.class,
@@ -35,9 +37,6 @@ public abstract class AbstractApplicationTest {
     protected CacheManager cacheManager;
 
     @Autowired
-    protected TestRestTemplate restTemplate;
-
-    @Autowired
     protected Clock clock;
 
     @MockitoSpyBean
@@ -45,6 +44,7 @@ public abstract class AbstractApplicationTest {
 
     @MockitoSpyBean
     protected CardRepository cardRepository;
+
 
     static class RestResponsePage<T> extends PageImpl<T> {
 

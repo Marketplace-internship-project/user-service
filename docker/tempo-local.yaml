@@ -7,8 +7,16 @@ distributor:
       protocols:
         http:
           endpoint: 0.0.0.0:4318
-#        grpc:
-#          endpoint: 0.0.0.0:4317
+
+# Добавлено: настройка локального сборщика
+ingester:
+  max_block_duration: 5m # Для локальной разработки быстрее сбрасываем блоки на диск
+  trace_idle_period: 10s
+
+# Добавлено: настройка чистильщика
+compactor:
+  compaction:
+    block_retention: 1h
 
 storage:
   trace:
@@ -17,3 +25,6 @@ storage:
       path: /tmp/tempo/blocks
     wal:
       path: /tmp/tempo/wal
+
+# Добавлено: ЯВНО ВКЛЮЧАЕМ ПОИСК
+search_enabled: true

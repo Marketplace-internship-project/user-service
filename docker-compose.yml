@@ -18,10 +18,17 @@ services:
       - SPRING_DATA_REDIS_PORT=6379
 
       - JWT_ACCESS_SECRET=${JWT_ACCESS_SECRET}
+      #check compatibility of env vars in *-docker.properties
+      - MANAGEMENT_OTLP_TRACING_ENDPOINT=http://tempo:4318/v1/traces
     depends_on:
       postgres-db:
         condition: service_healthy
       redis-cache:
+        condition: service_healthy
+      #check correct syntax of dependency
+      tempo:
+        condition: service_healthy
+      loki:
         condition: service_healthy
 
 
@@ -53,6 +60,49 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  prometheus:
+    image: prom/prometheus:latest
+    volumes:
+      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+
+  tempo:
+    image: grafana/tempo:latest
+    command: [ "-config.file=/etc/tempo.yaml" ]
+    volumes:
+      - ./docker/tempo-local.yaml:/etc/tempo.yaml
+    ports:
+      - "4318:4318"  # OTLP HTTP receiver
+      - "3200:3200"  # Tempo query frontend
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+    command: -config.file=/etc/loki/local-config.yaml
+
+  promtail:
+    image: grafana/promtail:latest
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./docker/promtail.yaml:/etc/promtail/config.yml
+    command: -config.file=/etc/promtail/config.yml
+    depends_on:
+      - loki
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    depends_on:
+      - prometheus
+      - loki
+      - tempo
 
 volumes:
   postgres-data:

@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
 
-  app:
+  user-service:
     build: .
     container_name: user-service
     ports:
@@ -27,9 +27,9 @@ services:
         condition: service_healthy
       #check correct syntax of dependency
       tempo:
-        condition: service_healthy
+        condition: service_started
       loki:
-        condition: service_healthy
+        condition: service_started
 
 
   postgres-db:
@@ -64,7 +64,7 @@ services:
   prometheus:
     image: prom/prometheus:latest
     volumes:
-      - ./docker/prometheus.yml:/etc/prometheus/prometheus.yml
+      - ./docker/prometheus.yaml:/etc/prometheus/prometheus.yml
     ports:
       - "9090:9090"
 
@@ -99,6 +99,8 @@ services:
     environment:
       - GF_AUTH_ANONYMOUS_ENABLED=true
       - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+    volumes:
+      - ./docker/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
     depends_on:
       - prometheus
       - loki
